@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 100 150">
+  <defs>
+    <!-- Gradiente diagonal vibrante -->
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF3C78;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#FF8C00;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#007BFF;stop-opacity:1"/>
+    </linearGradient>
+    <!-- Filtro de glow para un efecto sutil -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Trazo moderno de la letra "S" -->
+  <path d="M55,45 C40,45 40,75 55,75 C70,75 70,105 85,105" 
+        fill="none" 
+        stroke="url(#grad1)" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+</svg>
