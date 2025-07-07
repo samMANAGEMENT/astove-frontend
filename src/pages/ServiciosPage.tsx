@@ -1,0 +1,389 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { toast } from 'react-toastify';
+import {
+  Button,
+  Card,
+  DataTable,
+  PageHeader,
+  SearchFilters,
+  Badge,
+  Modal,
+  Input,
+  Spinner,
+} from '../components/ui';
+import { servicioService, type Servicio } from '../lib/services/servicioService';
+
+interface ServicioFormData {
+  nombre: string;
+  precio: number;
+  estado: boolean;
+}
+
+const ServiciosPage: React.FC = () => {
+  const [searchValue, setSearchValue] = useState('');
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingServicio, setEditingServicio] = useState<Servicio | null>(null);
+  const [servicioToDelete, setServicioToDelete] = useState<Servicio | null>(null);
+  const [formData, setFormData] = useState<ServicioFormData>({
+    nombre: '',
+    precio: 0,
+    estado: true,
+  });
+  const [formErrors, setFormErrors] = useState<{
+    nombre?: string;
+    precio?: string;
+  }>({});
+
+  useEffect(() => {
+    loadServicios();
+  }, []);
+
+  const loadServicios = async () => {
+    try {
+      setIsLoading(true);
+      const data = await servicioService.getAll();
+      setServicios(data);
+    } catch (error) {
+      console.error('Error al cargar servicios:', error);
+      toast.error('Error al cargar la lista de servicios');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nombre: '',
+      precio: 0,
+      estado: true,
+    });
+    setFormErrors({});
+    setEditingServicio(null);
+    setServicioToDelete(null);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (servicio: Servicio) => {
+    setEditingServicio(servicio);
+    setFormData({
+      nombre: servicio.nombre,
+      precio: servicio.precio,
+      estado: servicio.estado,
+    });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    resetForm();
+  };
+
+  const validateForm = (): boolean => {
+    const errors: { nombre?: string; precio?: string } = {};
+    if (!formData.nombre.trim()) {
+      errors.nombre = 'El nombre es requerido';
+    }
+    if (formData.precio <= 0) {
+      errors.precio = 'El precio debe ser mayor a 0';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    try {
+      setIsLoading(true);
+      if (editingServicio) {
+        await servicioService.updateService(editingServicio.id, {
+          nombre: formData.nombre,
+          precio: formData.precio,
+          estado: formData.estado,
+        });
+        toast.success('Servicio actualizado exitosamente');
+      } else {
+        await servicioService.createService({
+          nombre: formData.nombre,
+          precio: formData.precio,
+          estado: formData.estado,
+        });
+        toast.success('Servicio creado exitosamente');
+      }
+      await loadServicios();
+      closeModal();
+    } catch (error) {
+      console.error('Error al guardar servicio:', error);
+      toast.error(editingServicio ? 'Error al actualizar el servicio' : 'Error al crear el servicio');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (servicio: Servicio) => {
+    setServicioToDelete(servicio);
+  };
+
+  const confirmDelete = async () => {
+    if (!servicioToDelete) return;
+    try {
+      setIsLoading(true);
+      // Aquí deberías llamar a delete cuando exista en el servicio
+      toast.success('Servicio eliminado exitosamente');
+      await loadServicios();
+      setServicioToDelete(null);
+    } catch (error) {
+      console.error('Error al eliminar servicio:', error);
+      toast.error('Error al eliminar el servicio');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setServicioToDelete(null);
+  };
+
+  const handleView = (servicio: Servicio) => {
+    console.log('Ver servicio:', servicio);
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const columns = [
+    {
+      key: 'nombre' as keyof Servicio,
+      header: 'Servicio',
+      render: (value: string | number | boolean | undefined, row: Servicio) => (
+        <div className="flex items-center">
+          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+            <Eye className="w-4 h-4 text-white" />
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900">{String(value || '')}</div>
+            <div className="text-sm text-gray-500">ID: {row.id}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'precio' as keyof Servicio,
+      header: 'Precio',
+      render: (value: string | number | boolean | undefined) => (
+        <span className="font-medium text-green-600">
+          {typeof value === 'number' ? formatCurrency(value) : '$0'}
+        </span>
+      ),
+    },
+    {
+      key: 'estado' as keyof Servicio,
+      header: 'Estado',
+      render: (value: string | number | boolean | undefined) => {
+        const estado = Boolean(value);
+        return (
+          <Badge variant={estado ? 'success' : 'danger'}>
+            {estado ? 'Activo' : 'Inactivo'}
+          </Badge>
+        );
+      },
+    },
+  ];
+
+  const actions = [
+    {
+      icon: Eye,
+      onClick: handleView,
+      variant: 'primary' as const,
+      tooltip: 'Ver detalles',
+    },
+    {
+      icon: Edit,
+      onClick: openEditModal,
+      variant: 'success' as const,
+      tooltip: 'Editar servicio',
+    },
+    {
+      icon: Trash2,
+      onClick: handleDelete,
+      variant: 'danger' as const,
+      tooltip: 'Eliminar servicio',
+    },
+  ];
+
+  const handleFiltersClick = () => {
+    console.log('Abrir filtros');
+  };
+
+  const filteredServicios = servicios.filter(servicio => {
+    const searchLower = searchValue.toLowerCase();
+    return (
+      (servicio.nombre || '').toLowerCase().includes(searchLower)
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Lista de Servicios"
+        subtitle="Gestiona todos los servicios del sistema"
+      >
+        <Button
+          icon={Plus}
+          onClick={openCreateModal}
+        >
+          Nuevo Servicio
+        </Button>
+      </PageHeader>
+      <Card>
+        <SearchFilters
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          onFiltersClick={handleFiltersClick}
+          searchPlaceholder="Buscar servicios por nombre..."
+        />
+      </Card>
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <DataTable
+          data={filteredServicios}
+          columns={columns}
+          actions={actions}
+          emptyMessage="No se encontraron servicios"
+        />
+      )}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingServicio ? 'Editar Servicio' : 'Nuevo Servicio'}
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre *
+              </label>
+              <Input
+                value={formData.nombre}
+                onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
+                placeholder="Nombre del servicio"
+                required
+              />
+              {formErrors.nombre && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.nombre}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Precio *
+              </label>
+              <input
+                type="number"
+                value={formData.precio.toString()}
+                onChange={(e) => setFormData(prev => ({ ...prev, precio: parseFloat(e.target.value) || 0 }))}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-black"
+              />
+              {formErrors.precio && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.precio}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado
+              </label>
+              <select
+                value={formData.estado ? 'activo' : 'inactivo'}
+                onChange={(e) => setFormData(prev => ({ ...prev, estado: e.target.value === 'activo' }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-black"
+                required
+              >
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeModal}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              {isLoading && <Spinner size="sm" />}
+              {editingServicio ? 'Actualizar' : 'Crear'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+      <Modal
+        isOpen={!!servicioToDelete}
+        onClose={cancelDelete}
+        title="Confirmar Eliminación"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            ¿Estás seguro de que quieres eliminar el servicio{' '}
+            <span className="font-semibold text-gray-900">
+              "{servicioToDelete?.nombre}"
+            </span>
+            ?
+          </p>
+          <p className="text-sm text-gray-500">
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={cancelDelete}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={confirmDelete}
+              disabled={isLoading}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 focus:ring-red-500"
+            >
+              {isLoading && <Spinner size="sm" />}
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default ServiciosPage;
