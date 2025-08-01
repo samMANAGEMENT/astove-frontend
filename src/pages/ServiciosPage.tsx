@@ -18,6 +18,7 @@ interface ServicioFormData {
   nombre: string;
   precio: number;
   estado: boolean;
+  porcentaje_pago_empleado: number;
 }
 
 const ServiciosPage: React.FC = () => {
@@ -31,11 +32,31 @@ const ServiciosPage: React.FC = () => {
     nombre: '',
     precio: 0,
     estado: true,
+    porcentaje_pago_empleado: 40,
   });
   const [formErrors, setFormErrors] = useState<{
     nombre?: string;
     precio?: string;
+    porcentaje_pago_empleado?: string;
   }>({});
+
+  // Función para formatear número a formato colombiano
+  const formatColombianNumber = (value: number): string => {
+    return new Intl.NumberFormat('es-CO').format(value);
+  };
+
+  // Función para desformatear número colombiano
+  const unformatColombianNumber = (value: string): number => {
+    return parseInt(value.replace(/\./g, '')) || 0;
+  };
+
+  // Función para manejar el cambio del precio con formato
+  const handlePrecioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\./g, '');
+    const numericValue = parseInt(rawValue) || 0;
+    
+    setFormData(prev => ({ ...prev, precio: numericValue }));
+  };
 
   useEffect(() => {
     loadServicios();
@@ -59,6 +80,7 @@ const ServiciosPage: React.FC = () => {
       nombre: '',
       precio: 0,
       estado: true,
+      porcentaje_pago_empleado: 40,
     });
     setFormErrors({});
     setEditingServicio(null);
@@ -76,6 +98,7 @@ const ServiciosPage: React.FC = () => {
       nombre: servicio.nombre,
       precio: servicio.precio,
       estado: servicio.estado,
+      porcentaje_pago_empleado: parseFloat(servicio.porcentaje_pago_empleado) || 40,
     });
     setIsModalOpen(true);
   };
@@ -86,12 +109,15 @@ const ServiciosPage: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    const errors: { nombre?: string; precio?: string } = {};
+    const errors: { nombre?: string; precio?: string; porcentaje_pago_empleado?: string } = {};
     if (!formData.nombre.trim()) {
       errors.nombre = 'El nombre es requerido';
     }
     if (formData.precio <= 0) {
       errors.precio = 'El precio debe ser mayor a 0';
+    }
+    if (formData.porcentaje_pago_empleado < 0 || formData.porcentaje_pago_empleado > 100) {
+      errors.porcentaje_pago_empleado = 'El porcentaje debe estar entre 0 y 100';
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -107,6 +133,7 @@ const ServiciosPage: React.FC = () => {
           nombre: formData.nombre,
           precio: formData.precio,
           estado: formData.estado,
+          porcentaje_pago_empleado: formData.porcentaje_pago_empleado,
         });
         toast.success('Servicio actualizado exitosamente');
       } else {
@@ -114,6 +141,7 @@ const ServiciosPage: React.FC = () => {
           nombre: formData.nombre,
           precio: formData.precio,
           estado: formData.estado,
+          porcentaje_pago_empleado: formData.porcentaje_pago_empleado,
         });
         toast.success('Servicio creado exitosamente');
       }
@@ -188,6 +216,18 @@ const ServiciosPage: React.FC = () => {
           {typeof value === 'number' ? formatCurrency(value) : '$0'}
         </span>
       ),
+    },
+    {
+      key: 'porcentaje_pago_empleado' as keyof Servicio,
+      header: 'Porcentaje Empleado',
+      render: (value: string | number | boolean | undefined) => {
+        const porcentaje = typeof value === 'string' ? parseFloat(value) : (typeof value === 'number' ? value : 0);
+        return (
+          <span className="font-medium text-blue-600">
+            {porcentaje}%
+          </span>
+        );
+      },
     },
     {
       key: 'estado' as keyof Servicio,
@@ -295,12 +335,10 @@ const ServiciosPage: React.FC = () => {
                 Precio *
               </label>
               <input
-                type="number"
-                value={formData.precio.toString()}
-                onChange={(e) => setFormData(prev => ({ ...prev, precio: parseFloat(e.target.value) || 0 }))}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
+                type="text"
+                value={formData.precio === 0 ? '' : formatColombianNumber(formData.precio)}
+                onChange={handlePrecioChange}
+                placeholder="0"
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-black"
               />
@@ -308,7 +346,26 @@ const ServiciosPage: React.FC = () => {
                 <p className="text-red-500 text-sm mt-1">{formErrors.precio}</p>
               )}
             </div>
-            <div className="md:col-span-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Porcentaje Pago Empleado *
+              </label>
+              <input
+                type="number"
+                value={formData.porcentaje_pago_empleado.toString()}
+                onChange={(e) => setFormData(prev => ({ ...prev, porcentaje_pago_empleado: parseFloat(e.target.value) || 0 }))}
+                placeholder="40"
+                min="0"
+                max="100"
+                step="0.01"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-black"
+              />
+              {formErrors.porcentaje_pago_empleado && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.porcentaje_pago_empleado}</p>
+              )}
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Estado
               </label>

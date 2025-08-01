@@ -12,6 +12,8 @@ import {
     CircleDollarSign,
     Share,
     ShoppingCart,
+    Workflow,
+    Users,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 
@@ -77,12 +79,12 @@ const sidebarItems: SidebarItem[] = [
                 icon: <ShoppingCart className="w-5 h-5" />,
                 href: '/servicios/lista'
             },
-            // {
-            //     id: 'lista-productos',
-            //     label: 'Lista de Productos',
-            //     icon: <Package className="w-4 h-4" />,
-            //     href: '/productos/lista'
-            // },
+            {
+                id: 'lista-operadores',
+                label: 'Lista de Operadores',
+                icon: <Users className="w-4 h-4" />,
+                href: '/operadores/lista'
+            },
             // {
             //     id: 'lista-clientes',
             //     label: 'Lista de Clientes',
@@ -105,6 +107,12 @@ const sidebarItems: SidebarItem[] = [
                 id: 'roles',
                 label: 'Roles y Permisos',
                 icon: <Shield className="w-4 h-4" />,
+                href: '/usuarios/roles'
+            },
+            {
+                id: 'integrations',
+                label: 'Integraciones',
+                icon: <Workflow className="w-4 h-4" />,
                 href: '/usuarios/roles'
             },
             

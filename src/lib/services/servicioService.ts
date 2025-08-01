@@ -4,9 +4,10 @@ export interface Servicio {
   id: number;
   nombre: string;
   precio: number;
+  estado: boolean;
+  porcentaje_pago_empleado: string;
   created_at: string;
   updated_at: string;
-  estado: boolean;
 }
 
 const getAll = async (): Promise<Servicio[]> => {
@@ -18,6 +19,7 @@ interface CreateServicioData {
   nombre: string;
   precio: number;
   estado: boolean;
+  porcentaje_pago_empleado: number;
 }
 
 const createService = async (data: CreateServicioData): Promise<Servicio> => {
@@ -34,4 +36,4 @@ export const servicioService = {
   },
 };
 
-export default servicioService; 
+export default servicioService;

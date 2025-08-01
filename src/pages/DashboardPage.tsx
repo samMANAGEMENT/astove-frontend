@@ -7,14 +7,28 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Handshake,
+  Calculator,
+  PieChart,
+  Calendar,
+  CreditCard,
 } from 'lucide-react';
-import { Spinner } from '../components/ui';
+import { Spinner, Card, Badge, Button } from '../components/ui';
 import { useApi } from '../hooks/useApi';
 import { useEffect } from 'react';
+import { pagosService, type GananciaNeta, type EstadoPagoEmpleado } from '../lib/services/pagosService';
+import PagoSemanalModal from '../components/PagoSemanalModal';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+
+  // Estados para los datos
+  const [gananciaNeta, setGananciaNeta] = React.useState<GananciaNeta | null>(null);
+  const [estadoPagos, setEstadoPagos] = React.useState<EstadoPagoEmpleado[]>([]);
+  const [gananciasPorMetodo, setGananciasPorMetodo] = React.useState<any>(null);
+  const [isLoadingGanancia, setIsLoadingGanancia] = React.useState(true);
+  const [isLoadingPagos, setIsLoadingPagos] = React.useState(true);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] = React.useState<EstadoPagoEmpleado | null>(null);
 
   // Hook para total ganado
   const totalGanadoApi = useApi();
@@ -33,42 +47,118 @@ const DashboardPage: React.FC = () => {
   const totalPagarList = totalPagarApi.data ?? [];
   const isLoadingTotalPagar = totalPagarApi.isLoading;
 
+  // Hook para ganancias por método de pago
+  const gananciasMetodoApi = useApi();
+  useEffect(() => {
+    gananciasMetodoApi.get('/servicios/ganancias-por-metodo-pago');
+  }, []);
+  const gananciasMetodoData = gananciasMetodoApi.data ?? null;
+  const isLoadingGananciasMetodo = gananciasMetodoApi.isLoading;
+
+  // Cargar ganancia neta
+  useEffect(() => {
+    const loadGananciaNeta = async () => {
+      try {
+        setIsLoadingGanancia(true);
+        const data = await pagosService.getGananciaNeta();
+        setGananciaNeta(data);
+      } catch (error) {
+        console.error('Error al cargar ganancia neta:', error);
+      } finally {
+        setIsLoadingGanancia(false);
+      }
+    };
+
+    loadGananciaNeta();
+  }, []);
+
+  // Cargar estado de pagos
+  useEffect(() => {
+    const loadEstadoPagos = async () => {
+      try {
+        setIsLoadingPagos(true);
+        const data = await pagosService.getEstadoPagosEmpleados();
+        setEstadoPagos(data);
+      } catch (error) {
+        console.error('Error al cargar estado de pagos:', error);
+      } finally {
+        setIsLoadingPagos(false);
+      }
+    };
+
+    loadEstadoPagos();
+  }, []);
+
+  const handlePagarEmpleado = (empleado: EstadoPagoEmpleado) => {
+    setEmpleadoSeleccionado(empleado);
+    setIsModalOpen(true);
+  };
+
+  const handlePagoRealizado = () => {
+    // Recargar datos después del pago
+    const loadData = async () => {
+      try {
+        const [gananciaData, pagosData] = await Promise.all([
+          pagosService.getGananciaNeta(),
+          pagosService.getEstadoPagosEmpleados()
+        ]);
+        setGananciaNeta(gananciaData);
+        setEstadoPagos(pagosData);
+      } catch (error) {
+        console.error('Error al recargar datos:', error);
+      }
+    };
+    loadData();
+  };
+
   const stats = [
     {
-      title: 'Total Ganado',
-      value: isLoadingTotal
-        ? <Spinner size="sm" />
-        : totalGanado !== null
-          ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGanado)
-          : '--',
-      change: '1',
+      title: 'Ingresos Totales',
+      value: totalGanado !== null
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGanado)
+        : '--',
+      isLoading: isLoadingTotal,
+      change: '+12%',
       changeType: 'increase',
       icon: <DollarSign className="w-6 h-6" />,
       color: 'bg-green-500'
     },
     {
-      title: 'Lorem Lorem',
-      value: '0',
-      change: '0',
-      changeType: '0',
-      icon: <Users className="w-6 h-6" />,
+      title: 'Ganancia Neta',
+      value: gananciaNeta
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ganancia_neta)
+        : '--',
+      isLoading: isLoadingGanancia,
+      change: gananciaNeta ? `${gananciaNeta.porcentaje_ganancia.toFixed(1)}%` : '--',
+      changeType: 'increase',
+      icon: <TrendingUp className="w-6 h-6" />,
       color: 'bg-blue-500'
     },
     {
-      title: 'Lorem Lorem',
-      value: '0',
-      change: '0',
-      changeType: '0',
-      icon: <Activity className="w-6 h-6" />,
-      color: 'bg-purple-500'
+      title: 'Efectivo',
+      value: gananciasMetodoData?.efectivo?.total_ingresos
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.efectivo.total_ingresos)
+        : '--',
+      isLoading: isLoadingGananciasMetodo,
+      change: gananciasMetodoData?.efectivo?.porcentaje_del_total 
+        ? `${gananciasMetodoData.efectivo.porcentaje_del_total.toFixed(1)}%` 
+        : '--',
+      changeType: 'neutral',
+      icon: <DollarSign className="w-6 h-6" />,
+      color: 'bg-green-600'
     },
     {
-      title: 'Lorem Lorem',
-      value: '0',
-      change: '0',
-      changeType: '0',
-      icon: <TrendingUp className="w-6 h-6" />,
-      color: 'bg-orange-500'
+      title: 'Transferencia',
+      value: gananciasMetodoData?.transferencia?.total_ingresos
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.transferencia.total_ingresos)
+        : '--',
+      isLoading: isLoadingGananciasMetodo,
+      change: gananciasMetodoData?.transferencia?.porcentaje_del_total 
+        ? `${gananciasMetodoData.transferencia.porcentaje_del_total.toFixed(1)}%` 
+        : '--',
+      changeType: 'neutral',
+      icon: <CreditCard className="w-6 h-6" />,
+      color: 'bg-blue-600'
     }
   ];
 
@@ -87,23 +177,28 @@ const DashboardPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {isLoadingTotal ? <Spinner size="sm" /> : (totalGanado !== null
-                    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGanado)
-                    : '--')}
-                </p>
+                <div className="text-2xl font-bold text-gray-900 mt-1">
+                  {stat.isLoading ? <Spinner size="sm" /> : stat.value}
+                </div>
                 <div className="flex items-center mt-2">
                   {stat.changeType === 'increase' ? (
                     <ArrowUpRight className="w-4 h-4 text-green-500" />
-                  ) : (
+                  ) : stat.changeType === 'decrease' ? (
                     <ArrowDownRight className="w-4 h-4 text-red-500" />
+                  ) : (
+                    <div className="w-4 h-4 text-gray-400 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    </div>
                   )}
                   <span className={`text-sm font-medium ml-1 ${
-                    stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                    stat.changeType === 'increase' ? 'text-green-600' : 
+                    stat.changeType === 'decrease' ? 'text-red-600' : 'text-gray-600'
                   }`}>
                     {stat.change}
                   </span>
-                  <span className="text-sm text-gray-500 ml-1">Que el mes pasado</span>
+                  {stat.changeType !== 'neutral' && (
+                    <span className="text-sm text-gray-500 ml-1">vs mes pasado</span>
+                  )}
                 </div>
               </div>
               <div className={`${stat.color} p-3 rounded-lg`}>
@@ -118,65 +213,263 @@ const DashboardPage: React.FC = () => {
 
       {/* Content Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
+        {/* Pagos Detallados */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Cantidad a pagar</h3>
-          {isLoadingTotalPagar ? (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Pagos a Empleados</h3>
+            <div className="flex items-center space-x-2">
+              <Badge variant="info">{estadoPagos.length} empleados</Badge>
+            </div>
+          </div>
+          {isLoadingPagos ? (
             <div className="flex justify-center items-center py-8">
               <Spinner size="md" />
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {Array.isArray(totalPagarList) && totalPagarList.length > 0 ? (
-                totalPagarList.map((empleado: any) => (
-                  <div key={empleado.empleado_id} className="flex items-center justify-between py-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-blue-100 text-blue-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
-                        {empleado.nombre[0]}{empleado.apellido[0]}
+            <div className="space-y-4">
+              {estadoPagos.length > 0 ? (
+                estadoPagos.map((empleado: EstadoPagoEmpleado) => (
+                  <div key={empleado.empleado_id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-blue-100 text-blue-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
+                          {empleado.nombre[0]}{empleado.apellido[0]}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{empleado.nombre} {empleado.apellido}</div>
+                          <div className="text-xs text-gray-500">{empleado.cantidad_servicios} servicios</div>
+                          <div className={`text-xs font-medium ${
+                            empleado.estado_pago === 'pagado' ? 'text-green-600' :
+                            empleado.estado_pago === 'parcial' ? 'text-orange-600' : 'text-red-600'
+                          }`}>
+                            {empleado.estado_pago === 'pagado' ? '✅ Pagado' :
+                             empleado.estado_pago === 'parcial' ? '⚠️ Pago Parcial' : '⏳ Pendiente'}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{empleado.nombre} {empleado.apellido}</div>
-                        <div className="text-xs text-gray-500">ID: {empleado.empleado_id}</div>
+                      <div className="text-right">
+                        <div className="font-semibold text-green-700 text-lg">
+                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(empleado.saldo_pendiente)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Bruto: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(empleado.total_bruto)}
+                        </div>
+                        <div className="text-xs text-blue-600">
+                          Total a pagar: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(empleado.total_pagar)}
+                        </div>
+                        {empleado.pagos_realizados > 0 && (
+                          <div className="text-xs text-orange-600">
+                            Ya pagado: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(empleado.pagos_realizados)}
+                          </div>
+                        )}
+                        {empleado.saldo_pendiente > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 text-xs"
+                            onClick={() => handlePagarEmpleado(empleado)}
+                          >
+                            <CreditCard className="w-3 h-3 mr-1" />
+                            Pagar
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="font-semibold text-green-700 text-lg">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(empleado.total_pagar)}
+                    
+                    {/* Detalles de servicios */}
+                    <div className="mt-3 space-y-2">
+                      {empleado.detalles_servicios.slice(0, 2).map((servicio: any, index: number) => (
+                        <div key={index} className="flex justify-between text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                          <span>{servicio.servicio_nombre} (x{servicio.cantidad})</span>
+                          <span>{servicio.porcentaje_empleado}%</span>
+                        </div>
+                      ))}
+                      {empleado.detalles_servicios.length > 2 && (
+                        <div className="text-xs text-blue-600 text-center">
+                          +{empleado.detalles_servicios.length - 2} servicios más
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-gray-500 text-center py-6">No hay datos para mostrar.</div>
+                <div className="text-gray-500 text-center py-6">No hay empleados con pagos pendientes.</div>
               )}
             </div>
           )}
         </div>
 
-        {/* Quick Actions */}
+        {/* Resumen Financiero */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: 'Crear Usuario', icon: <Users className="w-5 h-5" />, color: 'bg-blue-500', route: '/usuarios/lista' },
-              { label: 'Crear Sucursal', icon: <Handshake className="w-5 h-5" />, color: 'bg-green-500', route: '/sucursales/lista' },
-              { label: 'Configuración', icon: <Activity className="w-5 h-5" />, color: 'bg-purple-500', route: '/settings' },
-              { label: 'Ver Analytics', icon: <DollarSign className="w-5 h-5" />, color: 'bg-orange-500', route: '/analytics' }
-            ].map((action, index) => (
-              <button
-                key={index}
-                onClick={() => navigate(action.route)}
-                className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200"
-              >
-                <div className={`${action.color} p-2 rounded-lg mb-2`}>
-                  <div className="text-white">
-                    {action.icon}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Resumen Financiero</h3>
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-500">
+                {gananciaNeta ? `${gananciaNeta.mes}/${gananciaNeta.anio}` : 'Cargando...'}
+              </span>
+            </div>
+          </div>
+          
+          {isLoadingGanancia ? (
+            <div className="flex justify-center items-center py-8">
+              <Spinner size="md" />
+            </div>
+          ) : gananciaNeta ? (
+            <div className="space-y-4">
+              {/* Ingresos Totales */}
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-green-500 p-2 rounded-lg">
+                    <DollarSign className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Ingresos Totales</div>
+                    <div className="text-sm text-gray-500">Este mes</div>
                   </div>
                 </div>
-                <span className="text-sm font-medium text-gray-700">{action.label}</span>
-              </button>
-            ))}
-          </div>
+                <div className="text-right">
+                  <div className="font-semibold text-green-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ingresos_totales)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Total a Pagar Empleados */}
+              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-orange-500 p-2 rounded-lg">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Pagar Empleados</div>
+                    <div className="text-sm text-gray-500">Este mes</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-orange-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.total_pagar_empleados)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Ganancia Neta */}
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-blue-500 p-2 rounded-lg">
+                    <TrendingUp className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Ganancia Neta</div>
+                    <div className="text-sm text-gray-500">{gananciaNeta.porcentaje_ganancia.toFixed(1)}% del total</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-blue-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ganancia_neta)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Métodos de Pago */}
+              {gananciasMetodoData && (
+                <>
+                  {/* Efectivo */}
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-green-500 p-2 rounded-lg">
+                        <DollarSign className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">Efectivo</div>
+                        <div className="text-sm text-gray-500">{gananciasMetodoData.efectivo.porcentaje_del_total.toFixed(1)}% del total</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-green-700">
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.efectivo.total_ingresos)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transferencia */}
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-blue-500 p-2 rounded-lg">
+                        <CreditCard className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">Transferencia</div>
+                        <div className="text-sm text-gray-500">{gananciasMetodoData.transferencia.porcentaje_del_total.toFixed(1)}% del total</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-blue-700">
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.transferencia.total_ingresos)}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Barra de progreso */}
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Ganancia</span>
+                  <span>{gananciaNeta.porcentaje_ganancia.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${gananciaNeta.porcentaje_ganancia}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-center py-6">No hay datos financieros disponibles.</div>
+          )}
         </div>
       </div>
+
+
+
+      {/* Acciones Rápidas */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Registrar Servicio', icon: <Activity className="w-5 h-5" />, color: 'bg-blue-500', route: '/servicios/registrar' },
+            { label: 'Ver Operadores', icon: <Users className="w-5 h-5" />, color: 'bg-green-500', route: '/operadores' },
+            { label: 'Ver Servicios', icon: <Calculator className="w-5 h-5" />, color: 'bg-purple-500', route: '/servicios' },
+            { label: 'Ver Reportes', icon: <PieChart className="w-5 h-5" />, color: 'bg-orange-500', route: '/reportes' }
+          ].map((action, index) => (
+            <button
+              key={index}
+              onClick={() => navigate(action.route)}
+              className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200"
+            >
+              <div className={`${action.color} p-2 rounded-lg mb-2`}>
+                <div className="text-white">
+                  {action.icon}
+                </div>
+              </div>
+              <span className="text-sm font-medium text-gray-700">{action.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Modal de Pago Semanal */}
+      <PagoSemanalModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEmpleadoSeleccionado(null);
+        }}
+        empleado={empleadoSeleccionado}
+        onPagoRealizado={handlePagoRealizado}
+      />
     </div>
   );
 };

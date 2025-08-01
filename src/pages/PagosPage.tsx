@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { Button, Card, DataTable, PageHeader, Modal, Input, Spinner } from '../components/ui';
 import Autocomplete from '../components/ui/Autocomplete';
 import { pagosService } from '../lib/services/pagosService';
-import type { Pago, CreatePagoData } from '../lib/services/pagosService';
+import type { PagoHistorico } from '../lib/services/pagosService';
 import { useApi } from '../hooks/useApi';
 
 interface Operador {
@@ -13,7 +13,7 @@ interface Operador {
 }
 
 export default function PagosPage() {
-  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [pagos, setPagos] = useState<PagoHistorico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [operadores, setOperadores] = useState<Operador[]>([]);
@@ -33,8 +33,8 @@ export default function PagosPage() {
   const cargarPagos = async () => {
     setIsLoading(true);
     try {
-      const data = await pagosService.getAll();
-      setPagos(data.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
+      const data = await pagosService.getAllPagos();
+      setPagos(data.sort((a: PagoHistorico, b: PagoHistorico) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
     } catch (e) {
       toast.error('Error al cargar los pagos');
     } finally {
@@ -104,30 +104,39 @@ export default function PagosPage() {
 
   const columns = [
     {
-      key: 'empleado' as keyof Pago,
+      key: 'empleado' as keyof PagoHistorico,
       header: 'Empleado',
-      render: (_: any, row: Pago) => (
+      render: (_: any, row: PagoHistorico) => (
         <span className="font-medium text-blue-700">{row.empleado.nombre} {row.empleado.apellido}</span>
       ),
     },
     {
-      key: 'monto' as keyof Pago,
+      key: 'monto' as keyof PagoHistorico,
       header: 'Monto',
-      render: (value: any, _row: Pago) => (
+      render: (value: any, _row: PagoHistorico) => (
         <span className="text-green-700 font-semibold">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(value))}</span>
       ),
     },
     {
-      key: 'fecha' as keyof Pago,
+      key: 'tipo_pago' as keyof PagoHistorico,
+      header: 'Tipo',
+      render: (value: any, _row: PagoHistorico) => (
+        <span className={`font-semibold ${value === 'total' ? 'text-blue-600' : 'text-orange-600'}`}>
+          {value === 'total' ? 'Total' : 'Parcial'}
+        </span>
+      ),
+    },
+    {
+      key: 'fecha' as keyof PagoHistorico,
       header: 'Fecha',
-      render: (value: any, _row: Pago) => (
+      render: (value: any, _row: PagoHistorico) => (
         <span className="text-black">{new Date(value).toLocaleDateString('es-CO')}</span>
       ),
     },
     {
-      key: 'estado' as keyof Pago,
+      key: 'estado' as keyof PagoHistorico,
       header: 'Estado',
-      render: (value: any, _row: Pago) => (
+      render: (value: any, _row: PagoHistorico) => (
         <span className={`font-semibold ${value ? 'text-green-600' : 'text-red-600'}`}>{value ? 'Pagado' : 'Pendiente'}</span>
       ),
     },
