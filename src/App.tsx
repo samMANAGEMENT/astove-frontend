@@ -16,6 +16,7 @@ import ZonasPage from "./pages/ZonesPage";
 import ServiciosPage from "./pages/ServiciosPage";
 import ServicesRegister from "./pages/ServicesRegister";
 import PagosPage from "./pages/PagosPage";
+import OperadoresPage from "./pages/OperadoresPage";
 
 function AppContent() {
   const { isPostLoginLoading } = useAuth();
@@ -80,10 +81,17 @@ function AppContent() {
             </DefaultLayout>
           </ProtectedRoute>
         } />
-                <Route path="/pagos/registrar" element={
+        <Route path="/pagos/registrar" element={
           <ProtectedRoute>
             <DefaultLayout>
               <PagosPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/operadores/lista" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <OperadoresPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />
