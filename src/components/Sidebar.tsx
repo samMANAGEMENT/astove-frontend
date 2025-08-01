@@ -16,6 +16,7 @@ import {
     Users,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarItem {
     id: string;
@@ -30,95 +31,88 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
-const sidebarItems: SidebarItem[] = [
-    {
-        id: 'dashboard',
-        label: 'Dashboard',
-        icon: <LayoutDashboard className="w-5 h-5" />,
-        href: '/dashboard'
-    },
-    {
-        id: 'services',
-        label: 'Servicios',
-        icon: <Share className="w-5 h-5" />,
-        href: '/servicios/registrar'
-    },
+const getSidebarItems = (userRole?: string): SidebarItem[] => {
+    const baseItems: SidebarItem[] = [
         {
-        id: 'shops',
-        label: 'Pagos',
-        icon: <CircleDollarSign className="w-5 h-5" />,
-        href: '/pagos/registrar'
-    },
-    {
-        id: 'reportes',
-        label: 'Reportes',
-        icon: <BarChart3 className="w-5 h-5" />,
-        children: [
-            {
-                id: 'analytics',
-                label: 'Analytics',
-                icon: <BarChart3 className="w-4 h-4" />,
-                href: '/reportes/analytics'
-            }
-        ]
-    },
-    {
-        id: 'admin',
-        label: 'Administración',
-        icon: <Settings className="w-5 h-5" />,
-        children: [
-            // {
-            //     id: 'lista-usuarios',
-            //     label: 'Lista de Usuarios',
-            //     icon: <Users className="w-4 h-4" />,
-            //     href: '/usuarios/lista'
-            // },
-            {
-                id: 'lista-services',
-                label: 'Lista de Servicios',
-                icon: <ShoppingCart className="w-5 h-5" />,
-                href: '/servicios/lista'
-            },
-            {
-                id: 'lista-operadores',
-                label: 'Lista de Operadores',
-                icon: <Users className="w-4 h-4" />,
-                href: '/operadores/lista'
-            },
-            // {
-            //     id: 'lista-clientes',
-            //     label: 'Lista de Clientes',
-            //     icon: <Building2 className="w-4 h-4" />,
-            //     href: '/clientes/lista'
-            // },
-            // {
-            //     id: 'lista-sucursales',
-            //     label: 'Lista de Sucursales',
-            //     icon: <Handshake className="w-4 h-4" />,
-            //     href: '/sucursales/lista'
-            // },
-            //  {
-            //     id: 'lista-zonas',
-            //     label: 'Lista de Zonas',
-            //     icon: <MapPin className="w-4 h-4" />,
-            //     href: '/zonas/lista'
-            // },
-            {
-                id: 'roles',
-                label: 'Roles y Permisos',
-                icon: <Shield className="w-4 h-4" />,
-                href: '/usuarios/roles'
-            },
-            {
-                id: 'integrations',
-                label: 'Integraciones',
-                icon: <Workflow className="w-4 h-4" />,
-                href: '/usuarios/roles'
-            },
-            
-        ]
+            id: 'dashboard',
+            label: 'Dashboard',
+            icon: <LayoutDashboard className="w-5 h-5" />,
+            href: '/dashboard'
+        }
+    ];
+
+    // Items para todos los roles
+    const commonItems: SidebarItem[] = [
+        {
+            id: 'services',
+            label: 'Servicios',
+            icon: <Share className="w-5 h-5" />,
+            href: '/servicios/registrar'
+        }
+    ];
+
+    // Items solo para admin y supervisor
+    const adminItems: SidebarItem[] = [
+        {
+            id: 'shops',
+            label: 'Pagos',
+            icon: <CircleDollarSign className="w-5 h-5" />,
+            href: '/pagos/registrar'
+        },
+        {
+            id: 'reportes',
+            label: 'Reportes',
+            icon: <BarChart3 className="w-5 h-5" />,
+            children: [
+                {
+                    id: 'analytics',
+                    label: 'Analytics',
+                    icon: <BarChart3 className="w-4 h-4" />,
+                    href: '/reportes/analytics'
+                }
+            ]
+        },
+        {
+            id: 'admin',
+            label: 'Administración',
+            icon: <Settings className="w-5 h-5" />,
+            children: [
+                {
+                    id: 'lista-services',
+                    label: 'Lista de Servicios',
+                    icon: <ShoppingCart className="w-5 h-5" />,
+                    href: '/servicios/lista'
+                },
+                {
+                    id: 'lista-operadores',
+                    label: 'Lista de Operadores',
+                    icon: <Users className="w-4 h-4" />,
+                    href: '/operadores/lista'
+                },
+                {
+                    id: 'roles',
+                    label: 'Roles y Permisos',
+                    icon: <Shield className="w-4 h-4" />,
+                    href: '/roles-permisos'
+                },
+                {
+                    id: 'integrations',
+                    label: 'Integraciones',
+                    icon: <Workflow className="w-4 h-4" />,
+                    href: '/usuarios/roles'
+                }
+            ]
+        }
+    ];
+
+    // Si es admin o supervisor, mostrar todos los items
+    if (userRole === 'admin' || userRole === 'supervisor') {
+        return [...baseItems, ...commonItems, ...adminItems];
     }
-];
+
+    // Si es operador, mostrar solo items básicos
+    return [...baseItems, ...commonItems];
+};
 
 const SidebarItem: React.FC<{
     item: SidebarItem;
@@ -198,6 +192,7 @@ const SidebarItem: React.FC<{
 const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
     const toggleItem = (id: string) => {
@@ -212,10 +207,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
         navigate(href);
     };
 
+    const sidebarItems = getSidebarItems(user?.role?.nombre);
+
     return (
         <div className={`
       bg-white shadow-lg transition-all duration-300 ease-in-out
-      ${isExpanded ? 'w-64' : 'w-16'}
+      ${isExpanded ? 'w-64' : 'w-20'}
     `}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
