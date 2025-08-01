@@ -7,6 +7,7 @@ import { useApi } from '../hooks/useApi';
 import Spinner from '../components/ui/Spinner';
 import { toast } from 'react-toastify';
 import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Servicio {
   id: string;
@@ -44,6 +45,8 @@ interface ServicioRealizado {
 }
 
 export default function ServicesRegister() {
+  const { user } = useAuth();
+  
   // Estados para servicios y operadores
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
@@ -56,7 +59,6 @@ export default function ServicesRegister() {
   const [modalOpen, setModalOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
-  const [gananciasPorMetodo, setGananciasPorMetodo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
 
@@ -64,20 +66,17 @@ export default function ServicesRegister() {
   const apiServicios = useApi();
   const apiOperadores = useApi();
   const apiAsignar = useApi();
-  const apiGanancias = useApi();
 
   // Obtener servicios al montar
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
       apiServicios.get('/servicios/listar-servicio'),
-      apiServicios.get('/servicios/listar-servicios-realizados'),
-      apiGanancias.get('/servicios/ganancias-por-metodo-pago')
+      apiServicios.get('/servicios/listar-servicios-realizados')
     ])
-      .then(([serviciosData, realizadosData, gananciasData]) => {
+      .then(([serviciosData, realizadosData]) => {
         setServicios(serviciosData || []);
         setServiciosRealizados(realizadosData || []);
-        setGananciasPorMetodo(gananciasData || null);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
@@ -86,18 +85,52 @@ export default function ServicesRegister() {
   // Obtener operadores cuando se abre el modal
   useEffect(() => {
     if (modalOpen) {
-      apiOperadores.get('/operadores/listar-operador')
-        .then((data) => {
-          // Mapear para mostrar nombre + apellido
-          const operadoresMapeados = (data || []).map((op: any) => ({
-            id: op.id,
-            name: `${op.nombre} ${op.apellido}`
-          }));
-          setOperadores(operadoresMapeados);
-        })
-        .catch(() => {});
+      // Si el usuario es operador, solo cargar su información
+      if (user?.role?.nombre === 'operador' && user?.operador) {
+        const operadorActual = {
+          id: user.operador.id.toString(),
+          name: `${user.operador.nombre} ${user.operador.apellido}`
+        };
+        setOperadores([operadorActual]);
+        setSelectedOperador(operadorActual); // Auto-seleccionar el operador actual
+      } else {
+        // Si es admin o supervisor, cargar todos los operadores
+        apiOperadores.get('/operadores/listar-operador')
+          .then((data) => {
+            // Mapear para mostrar nombre + apellido
+            const operadoresMapeados = (data || []).map((op: any) => ({
+              id: op.id,
+              name: `${op.nombre} ${op.apellido}`
+            }));
+            setOperadores(operadoresMapeados);
+          })
+          .catch(() => {});
+      }
     }
-  }, [modalOpen]);
+  }, [modalOpen, user]);
+
+  // Recalcular montos automáticamente cuando cambie la cantidad o el método de pago
+  useEffect(() => {
+    if (cantidad && selectedServicio && modalOpen) {
+      const total = calcularTotal();
+      
+      // Solo actualizar si los montos actuales no suman el total correcto
+      const totalActual = calcularTotalMontos();
+      if (Math.abs(total - totalActual) > 0.01) {
+        if (metodoPago === 'efectivo') {
+          setMontoEfectivo(total.toString());
+          setMontoTransferencia('0');
+        } else if (metodoPago === 'transferencia') {
+          setMontoEfectivo('0');
+          setMontoTransferencia(total.toString());
+        } else if (metodoPago === 'mixto') {
+          const mitad = total / 2;
+          setMontoEfectivo(mitad.toString());
+          setMontoTransferencia(mitad.toString());
+        }
+      }
+    }
+  }, [cantidad, selectedServicio, metodoPago, modalOpen]);
 
   // Abrir modal y setear servicio seleccionado
   const handleOpenModal = (servicio: Servicio) => {
@@ -154,17 +187,24 @@ export default function ServicesRegister() {
       setMontoEfectivo('0');
       setMontoTransferencia(total.toString());
     } else {
-      // Mixto - mantener los valores actuales o dividir 50/50
-      if (!montoEfectivo && !montoTransferencia) {
-        setMontoEfectivo((total / 2).toString());
-        setMontoTransferencia((total / 2).toString());
-      }
+      // Mixto - dividir 50/50 automáticamente
+      const mitad = total / 2;
+      setMontoEfectivo(mitad.toString());
+      setMontoTransferencia(mitad.toString());
     }
   };
 
   // Asignar servicio realizado
   const handleAsignar = async () => {
     if (!selectedServicio || !selectedOperador || !cantidad) return;
+    
+    // Validación adicional para operadores
+    if (user?.role?.nombre === 'operador') {
+      if (selectedOperador.id !== user.operador?.id?.toString()) {
+        toast.error('Solo puedes registrar servicios para tu cuenta');
+        return;
+      }
+    }
     
     if (!validarMontos()) {
       toast.error('La suma de efectivo y transferencia debe ser igual al total del servicio');
@@ -195,13 +235,9 @@ export default function ServicesRegister() {
   // Recargar solo el histórico después de asignar
   const cargarServiciosRealizados = () => {
     setIsLoading(true);
-    Promise.all([
-      apiServicios.get('/servicios/listar-servicios-realizados'),
-      apiGanancias.get('/servicios/ganancias-por-metodo-pago')
-    ])
-      .then(([realizadosData, gananciasData]) => {
+    apiServicios.get('/servicios/listar-servicios-realizados')
+      .then((realizadosData) => {
         setServiciosRealizados(realizadosData || []);
-        setGananciasPorMetodo(gananciasData || null);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
@@ -220,8 +256,11 @@ export default function ServicesRegister() {
   return (
     <div className="container mx-auto py-8 px-2">
       <PageHeader
-        title="Registrar Servicio Realizado"
-        subtitle="Asigna servicios a empleados y consulta el histórico de movimientos"
+        title={user?.role?.nombre === 'operador' ? 'Registrar Mi Servicio' : 'Registrar Servicio Realizado'}
+        subtitle={user?.role?.nombre === 'operador' 
+          ? 'Registra servicios realizados en tu cuenta y consulta tu histórico'
+          : 'Asigna servicios a empleados y consulta el histórico de movimientos'
+        }
       />
       {isLoading ? (
         <Spinner className="my-16" size="lg" />
@@ -314,23 +353,42 @@ export default function ServicesRegister() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="flex flex-col">
                   <label className="block text-sm font-medium mb-1">Empleado/Operador</label>
-                  <Autocomplete
-                    options={operadores}
-                    value={selectedOperador}
-                    onChange={setSelectedOperador}
-                    placeholder="Selecciona un operador"
-                    loading={apiOperadores.isLoading}
-                  />
+                  {user?.role?.nombre === 'operador' ? (
+                    // Si es operador, mostrar información fija con altura consistente
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex-1 flex items-center">
+                      <div className="flex items-center space-x-3 w-full">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {user.operador?.nombre?.[0] || 'O'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-blue-800 text-base">
+                            {user.operador ? `${user.operador.nombre} ${user.operador.apellido}` : 'Operador'}
+                          </div>
+                          <div className="text-xs text-blue-600">Tu cuenta</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Si es admin o supervisor, mostrar selector
+                    <Autocomplete
+                      options={operadores}
+                      value={selectedOperador}
+                      onChange={setSelectedOperador}
+                      placeholder="Selecciona un operador"
+                      loading={apiOperadores.isLoading}
+                    />
+                  )}
                 </div>
-                <div>
+                <div className="flex flex-col">
                   <label className="block text-sm font-medium mb-1">Cantidad</label>
                   <Input
                     type="number"
                     value={cantidad}
                     onChange={e => setCantidad(e.target.value)}
                     placeholder="Cantidad"
+                    className="flex-1 h-full"
                   />
                 </div>
               </div>
@@ -410,28 +468,39 @@ export default function ServicesRegister() {
 
               {/* Validación de montos */}
               {cantidad && (
-                <div className={`p-3 rounded-lg border ${
-                  validarMontos() ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'
+                <div className={`p-4 rounded-lg border-2 ${
+                  validarMontos() ? 'border-green-300 bg-green-50' : 'border-orange-300 bg-orange-50'
                 }`}>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className={validarMontos() ? 'text-green-700' : 'text-orange-800'}>Total ingresado:</span>
-                    <span className={`font-semibold ${
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
+                      Total ingresado:
+                    </span>
+                    <span className={`font-bold text-lg ${
                       validarMontos() ? 'text-green-700' : 'text-orange-800'
                     }`}>
                       {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotalMontos())}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm mt-1">
-                    <span className={validarMontos() ? 'text-green-700' : 'text-orange-800'}>Total requerido:</span>
-                    <span className={`font-semibold ${
+                  <div className="flex justify-between items-center text-sm">
+                    <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
+                      Total requerido:
+                    </span>
+                    <span className={`font-bold text-lg ${
                       validarMontos() ? 'text-green-700' : 'text-blue-700'
                     }`}>
                       {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotal())}
                     </span>
                   </div>
                   {!validarMontos() && (
-                    <div className="text-orange-800 text-xs mt-2 font-medium">
-                      ⚠️ Los montos deben sumar exactamente el total del servicio
+                    <div className="text-orange-800 text-xs mt-3 font-medium flex items-center">
+                      <span className="mr-1">⚠️</span>
+                      Los montos deben sumar exactamente el total del servicio
+                    </div>
+                  )}
+                  {validarMontos() && (
+                    <div className="text-green-700 text-xs mt-3 font-medium flex items-center">
+                      <span className="mr-1">✅</span>
+                      Montos correctos
                     </div>
                   )}
                 </div>
@@ -442,86 +511,27 @@ export default function ServicesRegister() {
                 disabled={!selectedOperador || !cantidad || !validarMontos() || apiAsignar.isLoading}
                 className="w-full"
               >
-                {apiAsignar.isLoading ? 'Asignando...' : 'Asignar Servicio'}
+                {apiAsignar.isLoading ? 'Asignando...' : user?.role?.nombre === 'operador' ? 'Registrar Mi Servicio' : 'Asignar Servicio'}
               </Button>
               {successMsg && <div className="text-green-600 text-center font-semibold mt-2">{successMsg}</div>}
               {apiAsignar.error && <div className="text-red-500 text-center mt-2">{apiAsignar.error}</div>}
             </div>
           </Modal>
 
-          {/* Resumen de ganancias por método de pago */}
-          {gananciasPorMetodo && (
-            <div className="mt-12 mb-8">
-              <h2 className="text-xl font-bold mb-4 text-black">Resumen de Ganancias por Método de Pago</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Efectivo */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-green-800">💵 Efectivo</h3>
-                    <div className="text-2xl font-bold text-green-700">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasPorMetodo.efectivo.total_ingresos)}
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    {/* <div className="flex justify-between">
-                      <span className="text-green-600">Ganancia neta:</span>
-                      <span className="font-semibold text-green-700">
-                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasPorMetodo.efectivo.ganancia_neta)}
-                      </span>
-                    </div> */}
-                    <div className="flex justify-between">
-                      <span className="text-green-600">Porcentaje:</span>
-                      <span className="font-semibold text-green-700">
-                        {gananciasPorMetodo.efectivo.porcentaje_del_total.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Transferencia */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-blue-800">🏦 Transferencia</h3>
-                    <div className="text-2xl font-bold text-blue-700">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasPorMetodo.transferencia.total_ingresos)}
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-blue-600">Porcentaje:</span>
-                      <span className="font-semibold text-blue-700">
-                        {gananciasPorMetodo.transferencia.porcentaje_del_total.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Total General */}
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-purple-800">📊 Total General</h3>
-                    <div className="text-2xl font-bold text-purple-700">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasPorMetodo.total_general)}
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-purple-600">Período:</span>
-                      <span className="font-semibold text-purple-700">
-                        {gananciasPorMetodo.mes}/{gananciasPorMetodo.anio}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Tabla de servicios realizados */}
           <div className="mt-12">
-            <h2 className="text-xl font-bold mb-4 text-black">Histórico de Servicios Realizados</h2>
+            <h2 className="text-xl font-bold mb-4 text-black">
+              {user?.role?.nombre === 'operador' ? 'Mi Histórico de Servicios' : 'Histórico de Servicios Realizados'}
+            </h2>
             <DataTable
-              data={serviciosRealizados}
+              data={user?.role?.nombre === 'operador' 
+                ? serviciosRealizados.filter(servicio => 
+                    servicio.empleado.id.toString() === user.operador?.id?.toString()
+                  )
+                : serviciosRealizados
+              }
               columns={[
                 {
                   key: 'servicio',
@@ -582,7 +592,10 @@ export default function ServicesRegister() {
                   },
                 },
               ]}
-              emptyMessage="No hay servicios realizados aún."
+              emptyMessage={user?.role?.nombre === 'operador' 
+                ? "No has realizado servicios aún." 
+                : "No hay servicios realizados aún."
+              }
             />
           </div>
         </>

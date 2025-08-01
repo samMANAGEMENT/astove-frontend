@@ -9,4 +9,5 @@ export { default as Autocomplete } from './Autocomplete';
 export { default as Modal } from './Modal';
 export { default as Spinner } from './Spinner';
 export { default as LoadingOverlay } from './LoadingOverlay';
-export { default as Paginator } from './Paginator'; 
+export { default as Paginator } from './Paginator';
+export { default as Pagination } from './Pagination'; 

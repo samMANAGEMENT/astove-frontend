@@ -9,6 +9,25 @@ interface User {
   name: string;
   type: string;
   entity_id: string;
+  role?: {
+    id: number;
+    nombre: string;
+    descripcion: string;
+  };
+  operador?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+    entidad_id: number;
+    entidad?: {
+      id: number;
+      nombre: string;
+    };
+    cargo?: {
+      id: number;
+      nombre: string;
+    };
+  };
 }
 
 interface AuthContextType {
@@ -73,24 +92,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password
       });
 
-      const { access_token, email: userEmail } = response.data;
+      const { access_token, user: userData } = response.data;
       const newToken = access_token;
 
-      const userData: User = {
-        id: '', // No disponible
-        email: userEmail,
-        name: userEmail, // O 'Usuario'
-        type: '', // No disponible
-        entity_id: '' // No disponible
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        name: userData.operador ? `${userData.operador.nombre} ${userData.operador.apellido}` : userData.email,
+        type: userData.role?.nombre || '',
+        entity_id: userData.operador?.entidad_id?.toString() || '',
+        role: userData.role,
+        operador: userData.operador
       };
 
       // Guardar en localStorage
       localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(user));
 
       // Actualizar estado
       setToken(newToken);
-      setUser(userData);
+      setUser(user);
 
       // Configurar token en axios
       api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;

@@ -103,6 +103,11 @@ const getServiciosPendientesEmpleado = async (empleadoId: number): Promise<Servi
   return response.data;
 };
 
+const getServiciosEmpleado = async (empleadoId: number): Promise<any[]> => {
+  const response = await api.get(`/pagos/servicios-empleado/${empleadoId}`);
+  return response.data;
+};
+
 const crearPagoSemanal = async (data: CreatePagoSemanalData): Promise<any> => {
   const response = await api.post('/pagos/crear-pago-semanal', data);
   return response.data;
@@ -129,6 +134,7 @@ export const pagosService = {
   getGananciaNeta,
   getTotalGanado,
   getServiciosPendientesEmpleado,
+  getServiciosEmpleado,
   crearPagoSemanal,
   getEstadoPagosEmpleados,
   getAllPagos,

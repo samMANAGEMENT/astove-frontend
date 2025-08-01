@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AuthPage from "./pages/AuthPage";
-import DashboardPage from "./pages/DashboardPage";
+import DashboardSelector from "./components/DashboardSelector";
 import UsersListPage from "./pages/UsersListPage";
 import SucursalesPage from "./pages/SucursalesPage";
 import ClientesPage from "./pages/ClientesPage";
@@ -17,6 +17,7 @@ import ServiciosPage from "./pages/ServiciosPage";
 import ServicesRegister from "./pages/ServicesRegister";
 import PagosPage from "./pages/PagosPage";
 import OperadoresPage from "./pages/OperadoresPage";
+import RolesPermissionsPage from "./pages/RolesPermissionsPage";
 
 function AppContent() {
   const { isPostLoginLoading } = useAuth();
@@ -28,7 +29,7 @@ function AppContent() {
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <DefaultLayout>
-              <DashboardPage />
+              <DashboardSelector />
             </DefaultLayout>
           </ProtectedRoute>
         } />
@@ -92,6 +93,13 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <OperadoresPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/roles-permisos" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <RolesPermissionsPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />
