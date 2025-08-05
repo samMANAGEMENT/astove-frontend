@@ -2,7 +2,7 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'file';
+  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'file' | 'datetime-local';
   placeholder?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;

@@ -15,6 +15,7 @@ import {
     Workflow,
     Users,
     ChartScatter,
+    Calendar,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -49,7 +50,8 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
             label: 'Servicios',
             icon: <Share className="w-5 h-5" />,
             href: '/servicios/registrar'
-        }
+        },
+
     ];
 
     // Items solo para admin y supervisor
