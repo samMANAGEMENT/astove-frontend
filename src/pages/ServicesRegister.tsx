@@ -32,6 +32,9 @@ interface ServicioRealizado {
   monto_efectivo: number;
   monto_transferencia: number;
   total_servicio: number;
+  descuento_porcentaje: number;
+  monto_descuento: number;
+  total_con_descuento: number;
   empleado: {
     id: number;
     nombre: string;
@@ -53,6 +56,7 @@ export default function ServicesRegister() {
   const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
   const [selectedOperador, setSelectedOperador] = useState<Operador | null>(null);
   const [cantidad, setCantidad] = useState('');
+  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState('');
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'mixto'>('efectivo');
   const [montoEfectivo, setMontoEfectivo] = useState('');
   const [montoTransferencia, setMontoTransferencia] = useState('');
@@ -66,6 +70,29 @@ export default function ServicesRegister() {
   const apiServicios = useApi();
   const apiOperadores = useApi();
   const apiAsignar = useApi();
+
+  // Función helper para formatear moneda en formato colombiano
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', { 
+      style: 'currency', 
+      currency: 'COP', 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Función para formatear número para input (sin símbolo de moneda)
+  const formatNumberForInput = (value: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Función para desformatear número (quitar separadores)
+  const unformatNumber = (value: string) => {
+    return value.replace(/\./g, '').replace(/,/g, '');
+  };
 
   // Obtener servicios al montar
   useEffect(() => {
@@ -109,34 +136,40 @@ export default function ServicesRegister() {
     }
   }, [modalOpen, user]);
 
-  // Recalcular montos automáticamente cuando cambie la cantidad o el método de pago
+  // Recalcular montos automáticamente cuando cambie la cantidad, descuento o el método de pago
   useEffect(() => {
     if (cantidad && selectedServicio && modalOpen) {
-      const total = calcularTotal();
+      const totalConDescuento = calcularTotalConDescuento();
+      
+      // Redondear a 2 decimales
+      const totalRedondeado = Math.round(totalConDescuento * 100) / 100;
       
       // Solo actualizar si los montos actuales no suman el total correcto
       const totalActual = calcularTotalMontos();
-      if (Math.abs(total - totalActual) > 0.01) {
+      const totalActualRedondeado = Math.round(totalActual * 100) / 100;
+      
+      if (Math.abs(totalRedondeado - totalActualRedondeado) > 0.01) {
         if (metodoPago === 'efectivo') {
-          setMontoEfectivo(total.toString());
+          setMontoEfectivo(formatNumberForInput(totalRedondeado));
           setMontoTransferencia('0');
         } else if (metodoPago === 'transferencia') {
           setMontoEfectivo('0');
-          setMontoTransferencia(total.toString());
+          setMontoTransferencia(formatNumberForInput(totalRedondeado));
         } else if (metodoPago === 'mixto') {
-          const mitad = total / 2;
-          setMontoEfectivo(mitad.toString());
-          setMontoTransferencia(mitad.toString());
+          const mitad = totalRedondeado / 2;
+          setMontoEfectivo(formatNumberForInput(mitad));
+          setMontoTransferencia(formatNumberForInput(mitad));
         }
       }
     }
-  }, [cantidad, selectedServicio, metodoPago, modalOpen]);
+  }, [cantidad, selectedServicio, metodoPago, modalOpen, descuentoPorcentaje]);
 
   // Abrir modal y setear servicio seleccionado
   const handleOpenModal = (servicio: Servicio) => {
     setSelectedServicio(servicio);
     setSelectedOperador(null);
     setCantidad('');
+    setDescuentoPorcentaje('');
     setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
@@ -144,53 +177,70 @@ export default function ServicesRegister() {
     setSuccessMsg('');
   };
 
-  // Cerrar modal
+  // Cerrar modal y resetear formulario
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedServicio(null);
     setSelectedOperador(null);
     setCantidad('');
+    setDescuentoPorcentaje('');
     setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
   };
 
-  // Calcular total del servicio
+  // Calcular total del servicio (sin descuento)
   const calcularTotal = () => {
     if (!selectedServicio || !cantidad) return 0;
     return selectedServicio.precio * Number(cantidad);
   };
 
+  // Calcular total con descuento aplicado
+  const calcularTotalConDescuento = () => {
+    const total = calcularTotal();
+    const descuento = Number(descuentoPorcentaje) || 0;
+    const montoDescuento = total * (descuento / 100);
+    return total - montoDescuento;
+  };
+
   // Calcular total de los montos ingresados
   const calcularTotalMontos = () => {
-    const efectivo = Number(montoEfectivo) || 0;
-    const transferencia = Number(montoTransferencia) || 0;
+    const efectivo = parseFloat(unformatNumber(montoEfectivo)) || 0;
+    const transferencia = parseFloat(unformatNumber(montoTransferencia)) || 0;
     return efectivo + transferencia;
   };
 
-  // Validar que los montos sumen el total
+  // Validar que los montos sumen el total con descuento
   const validarMontos = () => {
-    const total = calcularTotal();
+    const totalConDescuento = calcularTotalConDescuento();
     const totalMontos = calcularTotalMontos();
-    return Math.abs(total - totalMontos) < 0.01; // Tolerancia para decimales
+    
+    // Redondear a 2 decimales para evitar problemas de precisión
+    const totalConDescuentoRedondeado = Math.round(totalConDescuento * 100) / 100;
+    const totalMontosRedondeado = Math.round(totalMontos * 100) / 100;
+    
+    return Math.abs(totalConDescuentoRedondeado - totalMontosRedondeado) < 0.01;
   };
 
   // Actualizar montos automáticamente según método de pago
   const handleMetodoPagoChange = (nuevoMetodo: 'efectivo' | 'transferencia' | 'mixto') => {
     setMetodoPago(nuevoMetodo);
-    const total = calcularTotal();
+    const totalConDescuento = calcularTotalConDescuento();
+    
+    // Redondear a 2 decimales
+    const totalRedondeado = Math.round(totalConDescuento * 100) / 100;
     
     if (nuevoMetodo === 'efectivo') {
-      setMontoEfectivo(total.toString());
+      setMontoEfectivo(formatNumberForInput(totalRedondeado));
       setMontoTransferencia('0');
     } else if (nuevoMetodo === 'transferencia') {
       setMontoEfectivo('0');
-      setMontoTransferencia(total.toString());
+      setMontoTransferencia(formatNumberForInput(totalRedondeado));
     } else {
       // Mixto - dividir 50/50 automáticamente
-      const mitad = total / 2;
-      setMontoEfectivo(mitad.toString());
-      setMontoTransferencia(mitad.toString());
+      const mitad = totalRedondeado / 2;
+      setMontoEfectivo(formatNumberForInput(mitad));
+      setMontoTransferencia(formatNumberForInput(mitad));
     }
   };
 
@@ -207,7 +257,7 @@ export default function ServicesRegister() {
     }
     
     if (!validarMontos()) {
-      toast.error('La suma de efectivo y transferencia debe ser igual al total del servicio');
+      toast.error('La suma de efectivo y transferencia debe ser igual al total del servicio con descuento aplicado');
       return;
     }
 
@@ -218,9 +268,10 @@ export default function ServicesRegister() {
         cantidad: Number(cantidad),
         fecha: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
         metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
-        monto_efectivo: Number(montoEfectivo) || 0,
-        monto_transferencia: Number(montoTransferencia) || 0,
-        total_servicio: calcularTotal()
+        monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
+        monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
+        total_servicio: calcularTotal(), // Enviar el precio original (sin descuento)
+        descuento_porcentaje: Number(descuentoPorcentaje) || 0
       });
       toast.success('¡Servicio asignado exitosamente!');
       cargarServiciosRealizados();
@@ -294,11 +345,7 @@ export default function ServicesRegister() {
                     {/* Precio destacado */}
                     <div className="text-center">
                       <div className="text-3xl font-bold text-gray-800 mb-1">
-                        {new Intl.NumberFormat('es-CO', { 
-                          style: 'currency', 
-                          currency: 'COP', 
-                          minimumFractionDigits: 0 
-                        }).format(servicio.precio)}
+                        {formatCurrency(servicio.precio)}
                       </div>
                       <div className="text-sm text-gray-500">Precio del servicio</div>
                     </div>
@@ -339,13 +386,13 @@ export default function ServicesRegister() {
                     <div>
                       <span className="text-gray-600">Precio unitario:</span>
                       <span className="ml-2 font-semibold text-green-700">
-                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(selectedServicio.precio)}
+                        {formatCurrency(selectedServicio.precio)}
                       </span>
                     </div>
                     <div>
                       <span className="text-gray-600">Total:</span>
                       <span className="ml-2 font-semibold text-blue-700">
-                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotal())}
+                        {formatCurrency(calcularTotalConDescuento())}
                       </span>
                     </div>
                   </div>
@@ -354,7 +401,7 @@ export default function ServicesRegister() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <label className="block text-sm font-medium mb-1">Empleado/Operador</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-500">Empleado/Operador</label>
                   {user?.role?.nombre === 'operador' ? (
                     // Si es operador, mostrar información fija con altura consistente
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex-1 flex items-center">
@@ -382,7 +429,7 @@ export default function ServicesRegister() {
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <label className="block text-sm font-medium mb-1">Cantidad</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-500">Cantidad</label>
                   <Input
                     type="number"
                     value={cantidad}
@@ -391,6 +438,42 @@ export default function ServicesRegister() {
                     className="flex-1 h-full"
                   />
                 </div>
+              </div>
+
+              {/* Campo de descuento */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-500">Descuento (%)</label>
+                <Input
+                  type="number"
+                  value={descuentoPorcentaje}
+                  onChange={e => setDescuentoPorcentaje(e.target.value)}
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+                {Number(descuentoPorcentaje) > 0 && (
+                  <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-orange-700">Precio original:</span>
+                      <span className="font-semibold text-orange-800">
+                        {formatCurrency(calcularTotal())}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-orange-700">Descuento ({descuentoPorcentaje}%):</span>
+                      <span className="font-semibold text-orange-800">
+                        -{formatCurrency(calcularTotal() * (Number(descuentoPorcentaje) / 100))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-bold border-t border-orange-200 pt-2 mt-2">
+                      <span className="text-orange-700">Total con descuento:</span>
+                      <span className="text-orange-800">
+                        {formatCurrency(calcularTotalConDescuento())}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Método de pago */}
@@ -445,21 +528,29 @@ export default function ServicesRegister() {
               {/* Montos */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Monto en Efectivo</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Monto en Efectivo</label>
                   <Input
-                    type="number"
+                    type="text"
                     value={montoEfectivo}
-                    onChange={e => setMontoEfectivo(e.target.value)}
+                    onChange={e => {
+                      const rawValue = unformatNumber(e.target.value);
+                      const numValue = parseFloat(rawValue) || 0;
+                      setMontoEfectivo(formatNumberForInput(numValue));
+                    }}
                     placeholder="0"
                     disabled={metodoPago === 'transferencia'}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Monto en Transferencia</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Monto en Transferencia</label>
                   <Input
-                    type="number"
+                    type="text"
                     value={montoTransferencia}
-                    onChange={e => setMontoTransferencia(e.target.value)}
+                    onChange={e => {
+                      const rawValue = unformatNumber(e.target.value);
+                      const numValue = parseFloat(rawValue) || 0;
+                      setMontoTransferencia(formatNumberForInput(numValue));
+                    }}
                     placeholder="0"
                     disabled={metodoPago === 'efectivo'}
                   />
@@ -478,7 +569,7 @@ export default function ServicesRegister() {
                     <span className={`font-bold text-lg ${
                       validarMontos() ? 'text-green-700' : 'text-orange-800'
                     }`}>
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotalMontos())}
+                      {formatCurrency(calcularTotalMontos())}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -488,7 +579,7 @@ export default function ServicesRegister() {
                     <span className={`font-bold text-lg ${
                       validarMontos() ? 'text-green-700' : 'text-blue-700'
                     }`}>
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(calcularTotal())}
+                      {formatCurrency(calcularTotalConDescuento())}
                     </span>
                   </div>
                   {!validarMontos() && (
@@ -551,7 +642,7 @@ export default function ServicesRegister() {
                   key: 'servicio_id',
                   header: 'Precio',
                   render: (_: any, row: ServicioRealizado) => (
-                    <span className="text-green-700 font-semibold">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(row.servicio.precio)}</span>
+                    <span className="text-green-700 font-semibold">{formatCurrency(row.servicio.precio)}</span>
                   ),
                 },
                 {
@@ -560,6 +651,26 @@ export default function ServicesRegister() {
                   render: (value) => (
                     <span className="text-black">{String(value)}</span>
                   ),
+                },
+                {
+                  key: 'descuento_porcentaje',
+                  header: 'Descuento',
+                  render: (_: any, row: ServicioRealizado) => {
+                    if (row.descuento_porcentaje > 0) {
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs px-2 py-1 rounded-full font-medium bg-orange-100 text-orange-700">
+                            {row.descuento_porcentaje}%
+                          </span>
+                          <div className="text-xs text-gray-600">
+                            <div>Original: {formatCurrency(row.total_servicio)}</div>
+                            <div>Final: {formatCurrency(row.total_con_descuento)}</div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return <span className="text-gray-400">Sin descuento</span>;
+                  },
                 },
                 {
                   key: 'fecha',
@@ -583,8 +694,8 @@ export default function ServicesRegister() {
                         </span>
                         {isMixto && (
                           <div className="text-xs text-gray-600">
-                            <div>💵 {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(row.monto_efectivo)}</div>
-                            <div>🏦 {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(row.monto_transferencia)}</div>
+                            <div>💵 {formatCurrency(row.monto_efectivo)}</div>
+                            <div>🏦 {formatCurrency(row.monto_transferencia)}</div>
                           </div>
                         )}
                       </div>
