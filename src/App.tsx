@@ -18,6 +18,7 @@ import ServicesRegister from "./pages/ServicesRegister";
 import PagosPage from "./pages/PagosPage";
 import OperadoresPage from "./pages/OperadoresPage";
 import RolesPermissionsPage from "./pages/RolesPermissionsPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
 function AppContent() {
   const { isPostLoginLoading } = useAuth();
@@ -100,6 +101,13 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <RolesPermissionsPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reportes/analytics" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <AnalyticsPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />
