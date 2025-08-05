@@ -14,6 +14,7 @@ import {
     ShoppingCart,
     Workflow,
     Users,
+    ChartScatter,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -67,7 +68,7 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
                 {
                     id: 'analytics',
                     label: 'Analytics',
-                    icon: <BarChart3 className="w-4 h-4" />,
+                    icon: <ChartScatter className="w-4 h-4" />,
                     href: '/reportes/analytics'
                 }
             ]
