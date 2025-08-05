@@ -13,6 +13,9 @@ interface InputProps {
   name?: string;
   id?: string;
   required?: boolean;
+  min?: string;
+  max?: string;
+  step?: string;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -27,6 +30,9 @@ const Input: React.FC<InputProps> = ({
   name,
   id,
   required = false,
+  min,
+  max,
+  step,
 }) => {
   const baseClasses = 'w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-gray-900';
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : '';
@@ -49,6 +55,9 @@ const Input: React.FC<InputProps> = ({
         name={name}
         id={id}
         required={required}
+        min={min}
+        max={max}
+        step={step}
       />
       {Icon && iconPosition === 'right' && (
         <Icon className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
