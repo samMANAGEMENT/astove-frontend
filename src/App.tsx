@@ -20,6 +20,7 @@ import OperadoresPage from "./pages/OperadoresPage";
 import RolesPermissionsPage from "./pages/RolesPermissionsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 
+
 function AppContent() {
   const { isPostLoginLoading } = useAuth();
 
@@ -111,6 +112,7 @@ function AppContent() {
             </DefaultLayout>
           </ProtectedRoute>
         } />
+
         <Route path="/error" element={<ErrorPage />} />
         <Route path="*" element={<Navigate to="/error" />} />
       </Routes>
