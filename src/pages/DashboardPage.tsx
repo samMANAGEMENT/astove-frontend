@@ -13,7 +13,7 @@ import {
   CreditCard,
   PlusCircle,
 } from 'lucide-react';
-import { Spinner, Card, Badge, Button } from '../components/ui';
+import { Spinner, Badge, Button } from '../components/ui';
 import { useApi } from '../hooks/useApi';
 import { useEffect } from 'react';
 import { pagosService, type GananciaNeta, type EstadoPagoEmpleado } from '../lib/services/pagosService';
@@ -26,7 +26,7 @@ const DashboardPage: React.FC = () => {
   // Estados para los datos
   const [gananciaNeta, setGananciaNeta] = React.useState<GananciaNeta | null>(null);
   const [estadoPagos, setEstadoPagos] = React.useState<EstadoPagoEmpleado[]>([]);
-  const [gananciasPorMetodo, setGananciasPorMetodo] = React.useState<any>(null);
+
   const [isLoadingGanancia, setIsLoadingGanancia] = React.useState(true);
   const [isLoadingPagos, setIsLoadingPagos] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -48,8 +48,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     totalPagarApi.get('/servicios/total-pagar-operador');
   }, []);
-  const totalPagarList = totalPagarApi.data ?? [];
-  const isLoadingTotalPagar = totalPagarApi.isLoading;
+
 
   // Hook para ganancias por método de pago
   const gananciasMetodoApi = useApi();

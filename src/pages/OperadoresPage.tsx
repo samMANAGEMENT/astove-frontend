@@ -41,7 +41,7 @@ const OperadoresPage: React.FC = () => {
     {
       key: 'nombre' as keyof Operador,
       header: 'Operador',
-      render: (value: any, row: Operador) => (
+      render: (_value: any, row: Operador) => (
         <div className="flex items-center">
           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
             <User className="w-4 h-4 text-white" />
@@ -58,7 +58,7 @@ const OperadoresPage: React.FC = () => {
     {
       key: 'entidades' as keyof Operador,
       header: 'Entidad',
-      render: (value: any, row: Operador) => (
+      render: (_value: any, row: Operador) => (
         <div className="flex items-center">
           <Building className="w-4 h-4 text-gray-400 mr-2" />
           <span className="text-sm text-gray-700">
@@ -70,7 +70,7 @@ const OperadoresPage: React.FC = () => {
     {
       key: 'cargo' as keyof Operador,
       header: 'Cargo',
-      render: (value: any, row: Operador) => (
+      render: (_value: any, row: Operador) => (
         <Badge variant="info">
           {row.cargo?.nombre || 'Sin cargo'}
         </Badge>
@@ -79,7 +79,7 @@ const OperadoresPage: React.FC = () => {
     {
       key: 'telefono' as keyof Operador,
       header: 'Teléfono',
-      render: (value: any, row: Operador) => (
+      render: (_value: any, row: Operador) => (
         <div className="flex items-center">
           <Phone className="w-4 h-4 text-gray-400 mr-2" />
           <span className="text-sm text-gray-700">
@@ -91,7 +91,7 @@ const OperadoresPage: React.FC = () => {
     {
       key: 'usuario' as keyof Operador,
       header: 'Usuario',
-      render: (value: any, row: Operador) => (
+      render: (_value: any, row: Operador) => (
         <div className="text-sm text-gray-700">
           {row.usuario ? (
             <div>

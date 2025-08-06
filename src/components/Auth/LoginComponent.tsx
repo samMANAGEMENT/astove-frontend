@@ -6,7 +6,7 @@ import logo from '../../assets/suitpress-logo.png';
 import { Spinner } from '../ui';
 
 export default function LoginComponent() {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''

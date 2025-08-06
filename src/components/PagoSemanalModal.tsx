@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { Modal, Button, Input, Spinner } from './ui';
 import { pagosService, type ServicioPendiente, type CreatePagoSemanalData } from '../lib/services/pagosService';
 import { toast } from 'react-toastify';

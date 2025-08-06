@@ -46,9 +46,7 @@ const ServiciosPage: React.FC = () => {
   };
 
   // Función para desformatear número colombiano
-  const unformatColombianNumber = (value: string): number => {
-    return parseInt(value.replace(/\./g, '')) || 0;
-  };
+
 
   // Función para manejar el cambio del precio con formato
   const handlePrecioChange = (e: React.ChangeEvent<HTMLInputElement>) => {

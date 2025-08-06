@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, PageHeader, Button, Input, DataTable, Badge, Modal, Spinner } from '../components/ui';
-import { Download, FileSpreadsheet, BarChart3, Calendar, Filter, Building2, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { Card, PageHeader, Button, DataTable, Badge, Spinner } from '../components/ui';
+import { Download, FileSpreadsheet, BarChart3, Filter, Building2, Users, TrendingUp, DollarSign } from 'lucide-react';
 import analyticsService from '../lib/services/analyticsService';
 import type { ReportType, ReportData } from '../lib/services/analyticsService';
 import entidadesService from '../lib/services/entidadesService';
@@ -12,7 +12,7 @@ interface ReportFilters {
 }
 
 const AnalyticsPage: React.FC = () => {
-  const { user } = useAuth();
+
   const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
   const [entidades, setEntidades] = useState<Entidad[]>([]);
   const [selectedReport, setSelectedReport] = useState<string>('');

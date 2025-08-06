@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../components/ui/Modal';
 import Autocomplete from '../components/ui/Autocomplete';
 import Button from '../components/ui/Button';

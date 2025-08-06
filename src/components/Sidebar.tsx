@@ -15,7 +15,7 @@ import {
     Workflow,
     Users,
     ChartScatter,
-    Calendar,
+
     PlusCircle,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';

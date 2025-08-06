@@ -7,7 +7,7 @@ import {
   DataTable,
   PageHeader,
   SearchFilters,
-  Badge,
+
   Autocomplete,
   Modal,
   Input,
@@ -267,7 +267,7 @@ const SucursalesPage: React.FC = () => {
     {
       key: 'client_name' as keyof Branch,
       header: 'Cliente',
-      render: (value: string | number | undefined, row: Branch) => {
+      render: (_value: string | number | undefined, row: Branch) => {
         const client = Array.isArray(clients) ? clients.find(c => c.id === row.client_id) : null;
         return client?.name || 'Cliente no encontrado';
       },

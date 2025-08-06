@@ -12,26 +12,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const getPageInfo = () => {
-    switch (location.pathname) {
-      case '/dashboard':
-        return { title: 'Dashboard', subtitle: 'Panel de control principal' };
-      case '/usuarios/lista':
-        return { title: 'Lista de Usuarios', subtitle: 'Gestiona todos los usuarios del sistema' };
-      case '/usuarios/roles':
-        return { title: 'Roles y Permisos', subtitle: 'Administra roles y permisos de usuarios' };
-      case '/reportes/generales':
-        return { title: 'Reportes Generales', subtitle: 'Genera y visualiza reportes' };
-      case '/reportes/analytics':
-        return { title: 'Analytics', subtitle: 'Análisis y métricas del sistema' };
-      case '/configuracion/general':
-        return { title: 'Configuración General', subtitle: 'Configuración del sistema' };
-      case '/configuracion/database':
-        return { title: 'Base de Datos', subtitle: 'Configuración de la base de datos' };
-      default:
-        return { title: title || 'Página', subtitle: subtitle || 'Descripción de la página' };
-    }
-  };
+
 
   const handleLogout = () => {
     logout();

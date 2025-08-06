@@ -32,7 +32,7 @@ const UsersListPage: React.FC = () => {
     {
       key: 'name' as keyof User,
       header: 'Usuario',
-      render: (value: string | number, row: User) => (
+      render: (value: string | number, _row: User) => (
         <div className="flex items-center">
           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
             <Users className="w-4 h-4 text-white" />
