@@ -1,5 +1,4 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { User, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,8 +7,7 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
-  const location = useLocation();
+const Header: React.FC<HeaderProps> = () => {
   const { user, logout } = useAuth();
 
 

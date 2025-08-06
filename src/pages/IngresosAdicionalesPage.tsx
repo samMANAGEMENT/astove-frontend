@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -294,7 +294,7 @@ export default function IngresosAdicionalesPage() {
                   key: 'categoria',
                   header: 'Categoría',
                   render: (value) => (
-                    <span className="text-gray-600">{value || 'Sin categoría'}</span>
+                    <span className="text-gray-600">{value ? String(value) : 'Sin categoría'}</span>
                   ),
                 },
                 {

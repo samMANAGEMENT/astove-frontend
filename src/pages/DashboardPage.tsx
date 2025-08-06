@@ -7,7 +7,6 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Calculator,
   PieChart,
   Calendar,
   CreditCard,

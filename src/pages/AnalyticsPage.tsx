@@ -5,7 +5,7 @@ import analyticsService from '../lib/services/analyticsService';
 import type { ReportType, ReportData } from '../lib/services/analyticsService';
 import entidadesService from '../lib/services/entidadesService';
 import type { Entidad } from '../lib/services/entidadesService';
-import { useAuth } from '../contexts/AuthContext';
+
 
 interface ReportFilters {
   entidad_id?: number;
