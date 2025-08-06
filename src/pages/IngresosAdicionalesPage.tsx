@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { useApi } from '../hooks/useApi';
 import Spinner from '../components/ui/Spinner';
 import { toast } from 'react-toastify';
 import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
