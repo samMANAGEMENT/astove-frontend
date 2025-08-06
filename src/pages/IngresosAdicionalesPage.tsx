@@ -32,9 +32,6 @@ export default function IngresosAdicionalesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
 
-  // Hooks para API
-  const apiCrear = useApi();
-
   // Función helper para formatear moneda en formato colombiano
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', { 
