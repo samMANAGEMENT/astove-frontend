@@ -19,6 +19,7 @@ import PagosPage from "./pages/PagosPage";
 import OperadoresPage from "./pages/OperadoresPage";
 import RolesPermissionsPage from "./pages/RolesPermissionsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import IngresosAdicionalesPage from "./pages/IngresosAdicionalesPage";
 
 
 function AppContent() {
@@ -81,6 +82,13 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <ServicesRegister />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/ingresos-adicionales" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <IngresosAdicionalesPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />

@@ -11,11 +11,13 @@ import {
   PieChart,
   Calendar,
   CreditCard,
+  PlusCircle,
 } from 'lucide-react';
 import { Spinner, Card, Badge, Button } from '../components/ui';
 import { useApi } from '../hooks/useApi';
 import { useEffect } from 'react';
 import { pagosService, type GananciaNeta, type EstadoPagoEmpleado } from '../lib/services/pagosService';
+import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
 import PagoSemanalModal from '../components/PagoSemanalModal';
 
 const DashboardPage: React.FC = () => {
@@ -29,6 +31,8 @@ const DashboardPage: React.FC = () => {
   const [isLoadingPagos, setIsLoadingPagos] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = React.useState<EstadoPagoEmpleado | null>(null);
+  const [estadisticasCompletas, setEstadisticasCompletas] = React.useState<any>(null);
+  const [isLoadingEstadisticas, setIsLoadingEstadisticas] = React.useState(true);
 
   // Hook para total ganado
   const totalGanadoApi = useApi();
@@ -87,6 +91,23 @@ const DashboardPage: React.FC = () => {
     };
 
     loadEstadoPagos();
+  }, []);
+
+  // Cargar estadísticas completas
+  useEffect(() => {
+    const loadEstadisticasCompletas = async () => {
+      try {
+        setIsLoadingEstadisticas(true);
+        const data = await ingresosAdicionalesService.estadisticasCompletas();
+        setEstadisticasCompletas(data);
+      } catch (error) {
+        console.error('Error al cargar estadísticas completas:', error);
+      } finally {
+        setIsLoadingEstadisticas(false);
+      }
+    };
+
+    loadEstadisticasCompletas();
   }, []);
 
   const handlePagarEmpleado = (empleado: EstadoPagoEmpleado) => {
@@ -212,7 +233,7 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Content Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pagos Detallados */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -430,6 +451,109 @@ const DashboardPage: React.FC = () => {
             <div className="text-gray-500 text-center py-6">No hay datos financieros disponibles.</div>
           )}
         </div>
+
+        {/* Ingresos Adicionales */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Ingresos Adicionales</h3>
+            <div className="flex items-center space-x-2">
+              <Badge variant="info">
+                {estadisticasCompletas?.ingresos_adicionales_detalle?.total_registros || 0} registros
+              </Badge>
+            </div>
+          </div>
+          
+          {isLoadingEstadisticas ? (
+            <div className="flex justify-center items-center py-8">
+              <Spinner size="md" />
+            </div>
+          ) : estadisticasCompletas ? (
+            <div className="space-y-4">
+              {/* Total Ingresos Adicionales */}
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-purple-500 p-2 rounded-lg">
+                    <PlusCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Total Adicionales</div>
+                    <div className="text-sm text-gray-500">Este mes</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-purple-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.resumen_general.ingresos_adicionales)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desglose por tipo */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Accesorios:</span>
+                  <span className="font-semibold text-blue-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.ingresos_adicionales_detalle.accesorios)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Servicios Ocasionales:</span>
+                  <span className="font-semibold text-green-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.ingresos_adicionales_detalle.servicios_ocasionales)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Otros:</span>
+                  <span className="font-semibold text-orange-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.ingresos_adicionales_detalle.otros)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Métodos de pago */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Por Método de Pago</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">💵 Efectivo:</span>
+                    <span className="font-semibold text-green-700">
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.metodos_pago.efectivo.adicionales)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">🏦 Transferencia:</span>
+                    <span className="font-semibold text-blue-700">
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.metodos_pago.transferencia.adicionales)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Porcentaje del total */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>% del total de ingresos</span>
+                  <span>
+                    {estadisticasCompletas.resumen_general.ingresos_totales > 0 
+                      ? ((estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100).toFixed(1)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${estadisticasCompletas.resumen_general.ingresos_totales > 0 
+                        ? (estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100 
+                        : 0}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-center py-6">No hay datos de ingresos adicionales disponibles.</div>
+          )}
+        </div>
       </div>
 
 
@@ -440,9 +564,9 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Registrar Servicio', icon: <Activity className="w-5 h-5" />, color: 'bg-blue-500', route: '/servicios/registrar' },
-            { label: 'Ver Operadores', icon: <Users className="w-5 h-5" />, color: 'bg-green-500', route: '/operadores' },
-            { label: 'Ver Servicios', icon: <Calculator className="w-5 h-5" />, color: 'bg-purple-500', route: '/servicios' },
-            { label: 'Ver Reportes', icon: <PieChart className="w-5 h-5" />, color: 'bg-orange-500', route: '/reportes' }
+            { label: 'Ingresos Adicionales', icon: <PlusCircle className="w-5 h-5" />, color: 'bg-purple-500', route: '/ingresos-adicionales' },
+            { label: 'Ver Operadores', icon: <Users className="w-5 h-5" />, color: 'bg-green-500', route: '/operadores/lista' },
+            { label: 'Ver Reportes', icon: <PieChart className="w-5 h-5" />, color: 'bg-orange-500', route: '/reportes/analytics' }
           ].map((action, index) => (
             <button
               key={index}

@@ -16,6 +16,7 @@ import {
     Users,
     ChartScatter,
     Calendar,
+    PlusCircle,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,7 +52,12 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
             icon: <Share className="w-5 h-5" />,
             href: '/servicios/registrar'
         },
-
+        {
+            id: 'ingresos-adicionales',
+            label: 'Ingresos Adicionales',
+            icon: <PlusCircle className="w-5 h-5" />,
+            href: '/ingresos-adicionales'
+        },
     ];
 
     // Items solo para admin y supervisor

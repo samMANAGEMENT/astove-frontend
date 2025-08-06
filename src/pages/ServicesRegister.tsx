@@ -478,7 +478,7 @@ export default function ServicesRegister() {
 
               {/* Método de pago */}
               <div>
-                <label className="block text-sm font-medium mb-3">Método de Pago</label>
+                <label className="block text-sm font-medium mb-3 text-gray-600">Método de Pago</label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
