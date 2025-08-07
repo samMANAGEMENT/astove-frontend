@@ -8,6 +8,8 @@ import Spinner from '../components/ui/Spinner';
 import { toast } from 'react-toastify';
 import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import servicioService from '../lib/services/servicioService';
+import { Trash2, AlertTriangle } from 'lucide-react';
 
 interface Servicio {
   id: string;
@@ -65,6 +67,9 @@ export default function ServicesRegister() {
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [servicioToDelete, setServicioToDelete] = useState<ServicioRealizado | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Hooks para API
   const apiServicios = useApi();
@@ -302,6 +307,34 @@ export default function ServicesRegister() {
 
   const handleFiltersClick = () => {
     console.log('Abrir filtros avanzados');
+  };
+
+  // Funciones para eliminar servicio realizado
+  const handleDeleteClick = (servicio: ServicioRealizado) => {
+    setServicioToDelete(servicio);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!servicioToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await servicioService.deleteServicioRealizado(servicioToDelete.id);
+      toast.success('Servicio eliminado correctamente');
+      cargarServiciosRealizados(); // Recargar la lista
+      setDeleteModalOpen(false);
+      setServicioToDelete(null);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error al eliminar el servicio');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
+    setServicioToDelete(null);
   };
 
   return (
@@ -702,6 +735,24 @@ export default function ServicesRegister() {
                     );
                   },
                 },
+                // Columna de acciones solo para admin y supervisor
+                ...(user?.role?.nombre === 'admin' || user?.role?.nombre === 'supervisor' ? [{
+                  key: 'id' as keyof ServicioRealizado,
+                  header: 'Acciones',
+                  render: (_: any, row: ServicioRealizado) => (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={() => handleDeleteClick(row)}
+                        className="px-2 py-1 text-red-600 border-red-300 hover:bg-red-50"
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  ),
+                }] : []),
               ]}
               emptyMessage={user?.role?.nombre === 'operador' 
                 ? "No has realizado servicios aún." 
@@ -709,6 +760,57 @@ export default function ServicesRegister() {
               }
             />
           </div>
+
+          {/* Modal de confirmación de eliminación */}
+          <Modal 
+            isOpen={deleteModalOpen} 
+            onClose={handleCancelDelete} 
+            title="Confirmar Eliminación" 
+            size="md"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div>
+                  <h3 className="font-semibold text-red-800">¿Estás seguro?</h3>
+                  <p className="text-sm text-red-700">
+                    Esta acción no se puede deshacer. El servicio será eliminado permanentemente.
+                  </p>
+                </div>
+              </div>
+
+              {servicioToDelete && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Detalles del servicio:</h4>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p><span className="font-medium">Servicio:</span> {servicioToDelete.servicio.nombre}</p>
+                    <p><span className="font-medium">Empleado:</span> {servicioToDelete.empleado.nombre} {servicioToDelete.empleado.apellido}</p>
+                    <p><span className="font-medium">Fecha:</span> {new Date(servicioToDelete.fecha).toLocaleDateString('es-CO')}</p>
+                    <p><span className="font-medium">Total:</span> {formatCurrency(servicioToDelete.total_con_descuento)}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelDelete}
+                  disabled={isDeleting}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                >
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
         </>
       )}
     </div>
