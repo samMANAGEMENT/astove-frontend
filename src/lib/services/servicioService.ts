@@ -34,6 +34,10 @@ export const servicioService = {
     const response = await api.put(`/servicios/modificar-servicio/${id}`, data);
     return response.data;
   },
+  deleteServicioRealizado: async (id: number): Promise<{ message: string; id: number }> => {
+    const response = await api.delete(`/servicios/eliminar-servicio-realizado/${id}`);
+    return response.data;
+  },
 };
 
 export default servicioService;
