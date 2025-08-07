@@ -10,6 +10,7 @@ AUTH_README.md
 LAYOUT_README.md
 COMPONENTS_README.md
 CLIENTES_README.md
+*.env
 
 node_modules
 dist
