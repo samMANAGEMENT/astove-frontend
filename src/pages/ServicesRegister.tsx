@@ -3,6 +3,7 @@ import Modal from '../components/ui/Modal';
 import Autocomplete from '../components/ui/Autocomplete';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import CustomDatePicker from '../components/ui/DatePicker';
 import { useApi } from '../hooks/useApi';
 import Spinner from '../components/ui/Spinner';
 import { toast } from 'react-toastify';
@@ -10,6 +11,7 @@ import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import servicioService from '../lib/services/servicioService';
 import { Trash2, AlertTriangle } from 'lucide-react';
+import '../lib/dateConfig';
 
 interface Servicio {
   id: string;
@@ -62,7 +64,7 @@ export default function ServicesRegister() {
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'mixto'>('efectivo');
   const [montoEfectivo, setMontoEfectivo] = useState('');
   const [montoTransferencia, setMontoTransferencia] = useState('');
-  const [fechaServicio, setFechaServicio] = useState(new Date().toISOString().slice(0, 10)); // Fecha por defecto: hoy
+  const [fechaServicio, setFechaServicio] = useState<Date>(new Date()); // Fecha por defecto: hoy
   const [modalOpen, setModalOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
@@ -98,6 +100,17 @@ export default function ServicesRegister() {
   // Función para desformatear número (quitar separadores)
   const unformatNumber = (value: string) => {
     return value.replace(/\./g, '').replace(/,/g, '');
+  };
+
+  // Función helper para formatear fechas de manera consistente
+  const formatDate = (dateValue: string | Date) => {
+    // Si la fecha viene como string Y-m-d, usarla directamente
+    if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateValue.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('es-CO');
+    }
+    // Si viene como datetime, usar el método normal
+    return new Date(dateValue).toLocaleDateString('es-CO');
   };
 
   // Obtener servicios al montar
@@ -188,7 +201,7 @@ export default function ServicesRegister() {
     setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
-    setFechaServicio(new Date().toISOString().slice(0, 10)); // Resetear a fecha actual
+    setFechaServicio(new Date()); // Resetear a fecha actual
     setModalOpen(true);
     setSuccessMsg('');
   };
@@ -203,7 +216,7 @@ export default function ServicesRegister() {
     setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
-    setFechaServicio(new Date().toISOString().slice(0, 10));
+    setFechaServicio(new Date());
   };
 
   // Calcular total del servicio (sin descuento)
@@ -274,8 +287,7 @@ export default function ServicesRegister() {
     }
     
          // Validar que la fecha sea válida
-     const fechaSeleccionada = new Date(fechaServicio);
-     if (isNaN(fechaSeleccionada.getTime())) {
+     if (!fechaServicio || isNaN(fechaServicio.getTime())) {
        toast.error('Por favor selecciona una fecha válida');
        return;
      }
@@ -286,17 +298,17 @@ export default function ServicesRegister() {
     }
 
     try {
-      await apiAsignar.post('/servicios/servicio-realizado', {
-        servicio_id: selectedServicio.id,
-        empleado_id: selectedOperador.id,
-        cantidad: Number(cantidad),
-        fecha: fechaServicio, // Usar la fecha seleccionada
-        metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
-        monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
-        monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
-        total_servicio: calcularTotal(), // Enviar el precio original (sin descuento)
-        descuento_porcentaje: Number(descuentoPorcentaje) || 0
-      });
+             await apiAsignar.post('/servicios/servicio-realizado', {
+         servicio_id: selectedServicio.id,
+         empleado_id: selectedOperador.id,
+         cantidad: Number(cantidad),
+         fecha: fechaServicio.toISOString().slice(0, 10), // Convertir Date a formato YYYY-MM-DD
+         metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
+         monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
+         monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
+         total_servicio: calcularTotal(), // Enviar el precio original (sin descuento)
+         descuento_porcentaje: Number(descuentoPorcentaje) || 0
+       });
       toast.success('¡Servicio asignado exitosamente!');
       cargarServiciosRealizados();
       setTimeout(() => {
@@ -493,20 +505,20 @@ export default function ServicesRegister() {
                     className="h-[42px]"
                   />
                 </div>
-                <div className="flex flex-col">
-                  <label className="block text-sm font-medium mb-1 text-gray-500">Fecha del Servicio</label>
-                                     <Input
-                     type="date"
-                     value={fechaServicio}
-                     onChange={e => setFechaServicio(e.target.value)}
+                                 <div className="flex flex-col">
+                   <label className="block text-sm font-medium mb-1 text-gray-500">Fecha del Servicio</label>
+                   <CustomDatePicker
+                     selected={fechaServicio}
+                     onChange={(date) => setFechaServicio(date || new Date())}
+                     placeholder="Seleccionar fecha"
                      className="h-[42px]"
                    />
-                   {fechaServicio !== new Date().toISOString().slice(0, 10) && (
+                   {fechaServicio && fechaServicio.toDateString() !== new Date().toDateString() && (
                      <div className="mt-1 text-xs text-blue-600 font-medium">
-                       📅 Registrando servicio para fecha: {new Date(fechaServicio).toLocaleDateString('es-CO')}
+                       📅 Registrando servicio para fecha: {fechaServicio.toLocaleDateString('es-CO')}
                      </div>
                    )}
-                </div>
+                 </div>
               </div>
 
               {/* Campo de descuento */}
@@ -745,7 +757,7 @@ export default function ServicesRegister() {
                   key: 'fecha',
                   header: 'Fecha',
                   render: (value) => (
-                    <span className="text-black">{new Date(String(value)).toLocaleDateString('es-CO')}</span>
+                    <span className="text-black">{formatDate(String(value))}</span>
                   ),
                 },
                 {
@@ -821,7 +833,7 @@ export default function ServicesRegister() {
                   <div className="space-y-1 text-sm text-gray-600">
                     <p><span className="font-medium">Servicio:</span> {servicioToDelete.servicio.nombre}</p>
                     <p><span className="font-medium">Empleado:</span> {servicioToDelete.empleado.nombre} {servicioToDelete.empleado.apellido}</p>
-                    <p><span className="font-medium">Fecha:</span> {new Date(servicioToDelete.fecha).toLocaleDateString('es-CO')}</p>
+                    <p><span className="font-medium">Fecha:</span> {formatDate(servicioToDelete.fecha)}</p>
                     <p><span className="font-medium">Total:</span> {formatCurrency(servicioToDelete.total_con_descuento)}</p>
                   </div>
                 </div>
