@@ -62,6 +62,7 @@ export default function ServicesRegister() {
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'mixto'>('efectivo');
   const [montoEfectivo, setMontoEfectivo] = useState('');
   const [montoTransferencia, setMontoTransferencia] = useState('');
+  const [fechaServicio, setFechaServicio] = useState(new Date().toISOString().slice(0, 10)); // Fecha por defecto: hoy
   const [modalOpen, setModalOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
@@ -107,10 +108,16 @@ export default function ServicesRegister() {
       apiServicios.get('/servicios/listar-servicios-realizados')
     ])
       .then(([serviciosData, realizadosData]) => {
-        setServicios(serviciosData || []);
-        setServiciosRealizados(realizadosData || []);
+        // Asegurar que siempre sean arrays
+        setServicios(Array.isArray(serviciosData) ? serviciosData : []);
+        setServiciosRealizados(Array.isArray(realizadosData) ? realizadosData : []);
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.error('Error cargando datos:', error);
+        // En caso de error, establecer arrays vacíos
+        setServicios([]);
+        setServiciosRealizados([]);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -130,13 +137,16 @@ export default function ServicesRegister() {
         apiOperadores.get('/operadores/listar-operador')
           .then((data) => {
             // Mapear para mostrar nombre + apellido
-            const operadoresMapeados = (data || []).map((op: any) => ({
+            const operadoresMapeados = (Array.isArray(data) ? data : []).map((op: any) => ({
               id: op.id,
               name: `${op.nombre} ${op.apellido}`
             }));
             setOperadores(operadoresMapeados);
           })
-          .catch(() => {});
+          .catch((error) => {
+            console.error('Error cargando operadores:', error);
+            setOperadores([]);
+          });
       }
     }
   }, [modalOpen, user]);
@@ -178,6 +188,7 @@ export default function ServicesRegister() {
     setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
+    setFechaServicio(new Date().toISOString().slice(0, 10)); // Resetear a fecha actual
     setModalOpen(true);
     setSuccessMsg('');
   };
@@ -192,6 +203,7 @@ export default function ServicesRegister() {
     setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
+    setFechaServicio(new Date().toISOString().slice(0, 10));
   };
 
   // Calcular total del servicio (sin descuento)
@@ -261,6 +273,13 @@ export default function ServicesRegister() {
       }
     }
     
+         // Validar que la fecha sea válida
+     const fechaSeleccionada = new Date(fechaServicio);
+     if (isNaN(fechaSeleccionada.getTime())) {
+       toast.error('Por favor selecciona una fecha válida');
+       return;
+     }
+    
     if (!validarMontos()) {
       toast.error('La suma de efectivo y transferencia debe ser igual al total del servicio con descuento aplicado');
       return;
@@ -271,7 +290,7 @@ export default function ServicesRegister() {
         servicio_id: selectedServicio.id,
         empleado_id: selectedOperador.id,
         cantidad: Number(cantidad),
-        fecha: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+        fecha: fechaServicio, // Usar la fecha seleccionada
         metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
         monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
         monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
@@ -293,14 +312,17 @@ export default function ServicesRegister() {
     setIsLoading(true);
     apiServicios.get('/servicios/listar-servicios-realizados')
       .then((realizadosData) => {
-        setServiciosRealizados(realizadosData || []);
+        setServiciosRealizados(Array.isArray(realizadosData) ? realizadosData : []);
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.error('Error recargando servicios realizados:', error);
+        setServiciosRealizados([]);
+      })
       .finally(() => setIsLoading(false));
   };
 
   // Filtrar servicios por nombre
-  const filteredServicios = servicios.filter(servicio => {
+  const filteredServicios = (servicios || []).filter(servicio => {
     const searchLower = searchValue.toLowerCase();
     return servicio.nombre.toLowerCase().includes(searchLower);
   });
@@ -432,18 +454,18 @@ export default function ServicesRegister() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col">
                   <label className="block text-sm font-medium mb-1 text-gray-500">Empleado/Operador</label>
                   {user?.role?.nombre === 'operador' ? (
                     // Si es operador, mostrar información fija con altura consistente
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex-1 flex items-center">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 h-[42px] flex items-center">
                       <div className="flex items-center space-x-3 w-full">
-                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                           {user.operador?.nombre?.[0] || 'O'}
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-blue-800 text-base">
+                          <div className="font-medium text-blue-800 text-sm">
                             {user.operador ? `${user.operador.nombre} ${user.operador.apellido}` : 'Operador'}
                           </div>
                           <div className="text-xs text-blue-600">Tu cuenta</div>
@@ -468,8 +490,22 @@ export default function ServicesRegister() {
                     value={cantidad}
                     onChange={e => setCantidad(e.target.value)}
                     placeholder="Cantidad"
-                    className="flex-1 h-full"
+                    className="h-[42px]"
                   />
+                </div>
+                <div className="flex flex-col">
+                  <label className="block text-sm font-medium mb-1 text-gray-500">Fecha del Servicio</label>
+                                     <Input
+                     type="date"
+                     value={fechaServicio}
+                     onChange={e => setFechaServicio(e.target.value)}
+                     className="h-[42px]"
+                   />
+                   {fechaServicio !== new Date().toISOString().slice(0, 10) && (
+                     <div className="mt-1 text-xs text-blue-600 font-medium">
+                       📅 Registrando servicio para fecha: {new Date(fechaServicio).toLocaleDateString('es-CO')}
+                     </div>
+                   )}
                 </div>
               </div>
 

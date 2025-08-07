@@ -80,9 +80,10 @@ const DashboardPage: React.FC = () => {
       try {
         setIsLoadingPagos(true);
         const data = await pagosService.getEstadoPagosEmpleados();
-        setEstadoPagos(data);
+        setEstadoPagos(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error al cargar estado de pagos:', error);
+        setEstadoPagos([]);
       } finally {
         setIsLoadingPagos(false);
       }
@@ -122,7 +123,7 @@ const DashboardPage: React.FC = () => {
           pagosService.getEstadoPagosEmpleados()
         ]);
         setGananciaNeta(gananciaData);
-        setEstadoPagos(pagosData);
+        setEstadoPagos(Array.isArray(pagosData) ? pagosData : []);
       } catch (error) {
         console.error('Error al recargar datos:', error);
       }
@@ -144,11 +145,13 @@ const DashboardPage: React.FC = () => {
     },
     {
       title: 'Ganancia Neta',
-      value: gananciaNeta
+      value: gananciaNeta?.ganancia_neta
         ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ganancia_neta)
         : '--',
       isLoading: isLoadingGanancia,
-      change: gananciaNeta ? `${gananciaNeta.porcentaje_ganancia.toFixed(1)}%` : '--',
+      change: gananciaNeta?.porcentaje_ganancia 
+        ? `${gananciaNeta.porcentaje_ganancia.toFixed(1)}%` 
+        : '--',
       changeType: 'increase',
       icon: <TrendingUp className="w-6 h-6" />,
       color: 'bg-blue-500'
@@ -237,7 +240,7 @@ const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Pagos a Empleados</h3>
             <div className="flex items-center space-x-2">
-              <Badge variant="info">{estadoPagos.length} empleados</Badge>
+              <Badge variant="info">{(estadoPagos || []).length} empleados</Badge>
             </div>
           </div>
           {isLoadingPagos ? (
@@ -246,8 +249,8 @@ const DashboardPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {estadoPagos.length > 0 ? (
-                estadoPagos.map((empleado: EstadoPagoEmpleado) => (
+              {(estadoPagos || []).length > 0 ? (
+                (estadoPagos || []).map((empleado: EstadoPagoEmpleado) => (
                   <div key={empleado.empleado_id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
@@ -297,15 +300,15 @@ const DashboardPage: React.FC = () => {
                     
                     {/* Detalles de servicios */}
                     <div className="mt-3 space-y-2">
-                      {empleado.detalles_servicios.slice(0, 2).map((servicio: any, index: number) => (
+                      {(empleado.detalles_servicios || []).slice(0, 2).map((servicio: any, index: number) => (
                         <div key={index} className="flex justify-between text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
                           <span>{servicio.servicio_nombre} (x{servicio.cantidad})</span>
                           <span>{servicio.porcentaje_empleado}%</span>
                         </div>
                       ))}
-                      {empleado.detalles_servicios.length > 2 && (
+                      {(empleado.detalles_servicios || []).length > 2 && (
                         <div className="text-xs text-blue-600 text-center">
-                          +{empleado.detalles_servicios.length - 2} servicios más
+                          +{(empleado.detalles_servicios || []).length - 2} servicios más
                         </div>
                       )}
                     </div>
@@ -349,7 +352,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-green-700">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ingresos_totales)}
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta?.ingresos_totales || 0)}
                   </div>
                 </div>
               </div>
@@ -367,7 +370,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-orange-700">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.total_pagar_empleados)}
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta?.total_pagar_empleados || 0)}
                   </div>
                 </div>
               </div>
@@ -380,12 +383,12 @@ const DashboardPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-medium text-gray-900">Ganancia Neta</div>
-                    <div className="text-sm text-gray-500">{gananciaNeta.porcentaje_ganancia.toFixed(1)}% del total</div>
+                    <div className="text-sm text-gray-500">{gananciaNeta?.porcentaje_ganancia?.toFixed(1) || '0.0'}% del total</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-blue-700">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ganancia_neta)}
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta?.ganancia_neta || 0)}
                   </div>
                 </div>
               </div>
@@ -401,12 +404,12 @@ const DashboardPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">Efectivo</div>
-                        <div className="text-sm text-gray-500">{gananciasMetodoData.efectivo.porcentaje_del_total.toFixed(1)}% del total</div>
+                        <div className="text-sm text-gray-500">{gananciasMetodoData?.efectivo?.porcentaje_del_total?.toFixed(1) || '0.0'}% del total</div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-green-700">
-                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.efectivo.total_ingresos)}
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData?.efectivo?.total_ingresos || 0)}
                       </div>
                     </div>
                   </div>
@@ -419,12 +422,12 @@ const DashboardPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">Transferencia</div>
-                        <div className="text-sm text-gray-500">{gananciasMetodoData.transferencia.porcentaje_del_total.toFixed(1)}% del total</div>
+                        <div className="text-sm text-gray-500">{gananciasMetodoData?.transferencia?.porcentaje_del_total?.toFixed(1) || '0.0'}% del total</div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-blue-700">
-                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.transferencia.total_ingresos)}
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData?.transferencia?.total_ingresos || 0)}
                       </div>
                     </div>
                   </div>
@@ -435,12 +438,12 @@ const DashboardPage: React.FC = () => {
               <div className="mt-4">
                 <div className="flex justify-between text-sm text-gray-600 mb-1">
                   <span>Ganancia</span>
-                  <span>{gananciaNeta.porcentaje_ganancia.toFixed(1)}%</span>
+                  <span>{gananciaNeta?.porcentaje_ganancia?.toFixed(1) || '0.0'}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${gananciaNeta.porcentaje_ganancia}%` }}
+                    style={{ width: `${gananciaNeta?.porcentaje_ganancia || 0}%` }}
                   ></div>
                 </div>
               </div>
@@ -502,7 +505,7 @@ const DashboardPage: React.FC = () => {
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Otros:</span>
                   <span className="font-semibold text-orange-700">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.ingresos_adicionales_detalle.otros)}
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas?.ingresos_adicionales_detalle?.otros || 0)}
                   </span>
                 </div>
               </div>
@@ -514,13 +517,13 @@ const DashboardPage: React.FC = () => {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">💵 Efectivo:</span>
                     <span className="font-semibold text-green-700">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.metodos_pago.efectivo.adicionales)}
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas?.metodos_pago?.efectivo?.adicionales || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">🏦 Transferencia:</span>
                     <span className="font-semibold text-blue-700">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.metodos_pago.transferencia.adicionales)}
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas?.metodos_pago?.transferencia?.adicionales || 0)}
                     </span>
                   </div>
                 </div>
@@ -531,7 +534,7 @@ const DashboardPage: React.FC = () => {
                 <div className="flex justify-between text-sm text-gray-600 mb-1">
                   <span>% del total de ingresos</span>
                   <span>
-                    {estadisticasCompletas.resumen_general.ingresos_totales > 0 
+                    {estadisticasCompletas?.resumen_general?.ingresos_totales > 0 
                       ? ((estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100).toFixed(1)
                       : 0}%
                   </span>
@@ -540,7 +543,7 @@ const DashboardPage: React.FC = () => {
                   <div 
                     className="bg-purple-500 h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${estadisticasCompletas.resumen_general.ingresos_totales > 0 
+                      width: `${estadisticasCompletas?.resumen_general?.ingresos_totales > 0 
                         ? (estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100 
                         : 0}%` 
                     }}
