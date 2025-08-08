@@ -15,7 +15,7 @@ import {
     Workflow,
     Users,
     ChartScatter,
-
+    Package,
     PlusCircle,
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
@@ -51,6 +51,12 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
             label: 'Servicios',
             icon: <Share className="w-5 h-5" />,
             href: '/servicios/registrar'
+        },
+        {
+            id: 'productos',
+            label: 'Productos',
+            icon: <Package className="w-5 h-5" />,
+            href: '/productos'
         },
         {
             id: 'ingresos-adicionales',

@@ -7,19 +7,27 @@ interface DailyEarningsData {
     ingresos_totales: number;
     ingresos_servicios: number;
     ingresos_adicionales: number;
+    ingresos_ventas: number;
     total_pagar_empleados: number;
     ganancia_neta: number;
     porcentaje_ganancia: number;
   };
   metodos_pago: {
-    efectivo: { total: number; servicios: number; adicionales: number };
-    transferencia: { total: number; servicios: number; adicionales: number };
+    efectivo: { total: number; servicios: number; adicionales: number; ventas: number };
+    transferencia: { total: number; servicios: number; adicionales: number; ventas: number };
   };
   ingresos_adicionales_detalle: {
     accesorios: number;
     servicios_ocasionales: number;
     otros: number;
     total_registros: number;
+  };
+  ventas_productos: {
+    total_ventas: number;
+    ganancia_ventas: number;
+    cantidad_ventas: number;
+    efectivo: number;
+    transferencia: number;
   };
   servicios_por_empleado: Array<{
     empleado_id: number;
@@ -40,6 +48,8 @@ interface DailyEarningsData {
     total_servicios: number;
     cantidad_empleados: number;
     promedio_por_servicio: number;
+    total_ventas_productos: number;
+    promedio_por_venta: number;
   };
 }
 
