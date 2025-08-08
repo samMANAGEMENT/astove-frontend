@@ -15,7 +15,7 @@ import {
 } from '../components/ui';
 import { productosService } from '../lib/services/productosService';
 import { ventasService } from '../lib/services/ventasService';
-import type { Producto, CreateProductoData, EstadisticasProductos } from '../lib/services/productosService';
+import type { Producto, EstadisticasProductos } from '../lib/services/productosService';
 
 interface ProductoFormData {
   nombre: string;
@@ -39,7 +39,7 @@ const ProductosPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage] = useState(10);
-  
+
   const [formData, setFormData] = useState<ProductoFormData>({
     nombre: '',
     categoria_id: 1, // Por defecto
@@ -81,14 +81,14 @@ const ProductosPage: React.FC = () => {
   useEffect(() => {
     if (productoToVender && isVentaModalOpen) {
       const totalVenta = calcularTotalVenta();
-      
+
       // Redondear a 2 decimales
       const totalRedondeado = Math.round(totalVenta * 100) / 100;
-      
+
       // Solo actualizar si los montos actuales no suman el total correcto
       const totalActual = calcularTotalMontos();
       const totalActualRedondeado = Math.round(totalActual * 100) / 100;
-      
+
       if (Math.abs(totalRedondeado - totalActualRedondeado) > 0.01) {
         if (ventaFormData.metodo_pago === 'efectivo') {
           setVentaFormData(prev => ({
@@ -210,12 +210,12 @@ const ProductosPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     try {
       setIsLoading(true);
-      
+
       if (editingProducto) {
         await productosService.update(editingProducto.id, formData);
         toast.success('Producto actualizado exitosamente');
@@ -227,7 +227,7 @@ const ProductosPage: React.FC = () => {
       // Recargar productos y estadísticas
       await loadProductos();
       await loadEstadisticas();
-      
+
       closeModal();
     } catch (error) {
       console.error('Error al guardar producto:', error);
@@ -243,7 +243,7 @@ const ProductosPage: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!productoToDelete) return;
-    
+
     try {
       setIsLoading(true);
       await productosService.delete(productoToDelete.id);
@@ -304,8 +304,8 @@ const ProductosPage: React.FC = () => {
       errors.monto_transferencia = 'El monto en transferencia debe ser mayor a 0';
     }
 
-    if (ventaFormData.metodo_pago === 'mixto' && 
-        (ventaFormData.monto_efectivo <= 0 || ventaFormData.monto_transferencia <= 0)) {
+    if (ventaFormData.metodo_pago === 'mixto' &&
+      (ventaFormData.monto_efectivo <= 0 || ventaFormData.monto_transferencia <= 0)) {
       errors.monto_efectivo = 'Ambos montos deben ser mayores a 0';
       errors.monto_transferencia = 'Ambos montos deben ser mayores a 0';
     }
@@ -316,7 +316,7 @@ const ProductosPage: React.FC = () => {
 
   const handleVentaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateVentaForm() || !productoToVender) return;
 
     if (!validarMontos()) {
@@ -327,25 +327,25 @@ const ProductosPage: React.FC = () => {
 
     try {
       setIsLoading(true);
-      
+
       const ventaData = {
         producto_id: productoToVender.id,
         cantidad: ventaFormData.cantidad,
         metodo_pago: ventaFormData.metodo_pago,
-        monto_efectivo: ventaFormData.metodo_pago === 'efectivo' || ventaFormData.metodo_pago === 'mixto' 
+        monto_efectivo: ventaFormData.metodo_pago === 'efectivo' || ventaFormData.metodo_pago === 'mixto'
           ? ventaFormData.monto_efectivo : 0,
-        monto_transferencia: ventaFormData.metodo_pago === 'transferencia' || ventaFormData.metodo_pago === 'mixto' 
+        monto_transferencia: ventaFormData.metodo_pago === 'transferencia' || ventaFormData.metodo_pago === 'mixto'
           ? ventaFormData.monto_transferencia : 0,
         observaciones: ventaFormData.observaciones || undefined
       };
 
       await ventasService.crearVenta(ventaData);
       toast.success('Venta registrada exitosamente');
-      
+
       // Recargar productos y estadísticas
       await loadProductos();
       await loadEstadisticas();
-      
+
       closeVentaModal();
     } catch (error: any) {
       console.error('Error al registrar venta:', error);
@@ -363,7 +363,7 @@ const ProductosPage: React.FC = () => {
   const formatCurrency = (amount: number) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(numAmount)) return '$ 0';
-    
+
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
@@ -375,7 +375,7 @@ const ProductosPage: React.FC = () => {
   const getStockBadge = (stock: number) => {
     const numStock = typeof stock === 'string' ? parseInt(stock) : stock;
     if (isNaN(numStock)) return <Badge variant="warning">0</Badge>;
-    
+
     if (numStock > 10) {
       return <Badge variant="success">{numStock}</Badge>;
     } else if (numStock <= 5) {
@@ -388,7 +388,7 @@ const ProductosPage: React.FC = () => {
   const calculateGanancia = (costo: number, precio: number) => {
     const numCosto = typeof costo === 'string' ? parseFloat(costo) : costo;
     const numPrecio = typeof precio === 'string' ? parseFloat(precio) : precio;
-    
+
     if (isNaN(numCosto) || isNaN(numPrecio)) return 0;
     return numCosto - numPrecio;
   };
@@ -437,28 +437,28 @@ const ProductosPage: React.FC = () => {
     {
       key: 'categoria' as keyof Producto,
       header: 'Categoría',
-      render: (value: any, row: Producto) => (
+      render: (_value: any, row: Producto) => (
         <div>{row.categoria?.nombre || 'Sin categoría'}</div>
       ),
     },
     {
       key: 'precio_unitario' as keyof Producto,
       header: 'Precio Unitario',
-      render: (value: any) => (
-        <div className="text-gray-600">{formatCurrency(value)}</div>
+      render: (_value: any, _row: Producto) => (
+        <div className="text-gray-600">{formatCurrency(_value)}</div>
       ),
     },
     {
       key: 'costo_unitario' as keyof Producto,
       header: 'Costo Unitario',
-      render: (value: any) => (
-        <div className="text-gray-600">{formatCurrency(value)}</div>
+      render: (_value: any, _row: Producto) => (
+        <div className="text-gray-600">{formatCurrency(_value)}</div>
       ),
     },
     {
       key: 'ganancia' as keyof Producto,
       header: 'Ganancia',
-      render: (value: any, row: Producto) => {
+      render: (_value: any, row: Producto) => {
         const ganancia = calculateGanancia(row.costo_unitario, row.precio_unitario);
         return (
           <div className="text-green-600 font-medium">{formatCurrency(ganancia)}</div>
@@ -473,7 +473,7 @@ const ProductosPage: React.FC = () => {
     {
       key: 'ganancia_total' as keyof Producto,
       header: 'Ganancia Total',
-      render: (value: any, row: Producto) => {
+      render: (_value: any, row: Producto) => {
         const ganancia = calculateGanancia(row.costo_unitario, row.precio_unitario);
         const gananciaTotal = ganancia * (typeof row.stock === 'string' ? parseInt(row.stock) : row.stock);
         return (
@@ -599,32 +599,32 @@ const ProductosPage: React.FC = () => {
         </div>
       </Card>
 
-             {/* Tabla de productos */}
-       {isLoading ? (
-         <Spinner className="my-16" size="lg" />
-       ) : (
-         <div className="mt-8">
-           <DataTable
-             data={productos}
-             columns={columns}
-             actions={actions}
-             emptyMessage="No hay productos disponibles"
-             showPagination={false}
-           />
+      {/* Tabla de productos */}
+      {isLoading ? (
+        <Spinner className="my-16" size="lg" />
+      ) : (
+        <div className="mt-8">
+          <DataTable
+            data={productos}
+            columns={columns}
+            actions={actions}
+            emptyMessage="No hay productos disponibles"
+            showPagination={false}
+          />
 
-           {totalPages > 1 && (
-             <div className="mt-4">
-               <Pagination
-                 currentPage={currentPage}
-                 totalPages={totalPages}
-                 onPageChange={setCurrentPage}
-                 totalItems={totalItems}
-                 itemsPerPage={itemsPerPage}
-               />
-             </div>
-           )}
-         </div>
-       )}
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal para crear/editar producto */}
       <Modal
@@ -674,8 +674,8 @@ const ProductosPage: React.FC = () => {
               <Input
                 type="number"
                 step="0.01"
-                              value={formData.precio_unitario.toString()}
-              onChange={(e) => setFormData({ ...formData, precio_unitario: parseFloat(e.target.value) || 0 })}
+                value={formData.precio_unitario.toString()}
+                onChange={(e) => setFormData({ ...formData, precio_unitario: parseFloat(e.target.value) || 0 })}
                 placeholder="0.00"
                 required
               />
@@ -691,8 +691,8 @@ const ProductosPage: React.FC = () => {
               <Input
                 type="number"
                 step="0.01"
-                              value={formData.costo_unitario.toString()}
-              onChange={(e) => setFormData({ ...formData, costo_unitario: parseFloat(e.target.value) || 0 })}
+                value={formData.costo_unitario.toString()}
+                onChange={(e) => setFormData({ ...formData, costo_unitario: parseFloat(e.target.value) || 0 })}
                 placeholder="0.00"
                 required
               />
@@ -830,11 +830,10 @@ const ProductosPage: React.FC = () => {
                       monto_transferencia: 0
                     });
                   }}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    ventaFormData.metodo_pago === 'efectivo' 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
+                  className={`p-3 rounded-lg border-2 transition-all ${ventaFormData.metodo_pago === 'efectivo'
+                      ? 'border-green-500 bg-green-50 text-green-700'
                       : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-green-300 hover:bg-green-25'
-                  }`}
+                    }`}
                 >
                   <div className="text-center">
                     <div className="text-lg font-semibold">💵</div>
@@ -853,11 +852,10 @@ const ProductosPage: React.FC = () => {
                       monto_transferencia: totalRedondeado
                     });
                   }}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    ventaFormData.metodo_pago === 'transferencia' 
-                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  className={`p-3 rounded-lg border-2 transition-all ${ventaFormData.metodo_pago === 'transferencia'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-blue-300 hover:bg-blue-25'
-                  }`}
+                    }`}
                 >
                   <div className="text-center">
                     <div className="text-lg font-semibold">🏦</div>
@@ -877,11 +875,10 @@ const ProductosPage: React.FC = () => {
                       monto_transferencia: mitad
                     });
                   }}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    ventaFormData.metodo_pago === 'mixto' 
-                      ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                  className={`p-3 rounded-lg border-2 transition-all ${ventaFormData.metodo_pago === 'mixto'
+                      ? 'border-purple-500 bg-purple-50 text-purple-700'
                       : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-purple-300 hover:bg-purple-25'
-                  }`}
+                    }`}
                 >
                   <div className="text-center">
                     <div className="text-lg font-semibold">💳</div>

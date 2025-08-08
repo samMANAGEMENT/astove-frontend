@@ -7,15 +7,16 @@ import { toast } from 'react-toastify';
 import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
-import type { 
-  IngresoAdicional, 
+import { Trash2 } from 'lucide-react';
+import type {
+  IngresoAdicional,
   CrearIngresoAdicionalData,
-  TotalesIngresosAdicionales 
+  TotalesIngresosAdicionales
 } from '../lib/services/ingresosAdicionalesService';
 
 export default function IngresosAdicionalesPage() {
   const { user } = useAuth();
-  
+
   // Estados para el formulario
   const [concepto, setConcepto] = useState('');
   const [monto, setMonto] = useState('');
@@ -30,12 +31,16 @@ export default function IngresosAdicionalesPage() {
   const [totales, setTotales] = useState<TotalesIngresosAdicionales | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [ingresoToDelete, setIngresoToDelete] = useState<IngresoAdicional | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Función helper para formatear moneda en formato colombiano
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { 
-      style: 'currency', 
-      currency: 'COP', 
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -79,7 +84,7 @@ export default function IngresosAdicionalesPage() {
   useEffect(() => {
     if (monto && modalOpen) {
       const montoNum = parseFloat(unformatNumber(monto)) || 0;
-      
+
       if (metodoPago === 'efectivo') {
         setMontoEfectivo(formatNumberForInput(montoNum));
         setMontoTransferencia('0');
@@ -129,7 +134,7 @@ export default function IngresosAdicionalesPage() {
   const validarMontos = () => {
     const montoTotal = parseFloat(unformatNumber(monto)) || 0;
     const totalMontos = calcularTotalMontos();
-    
+
     return Math.abs(montoTotal - totalMontos) < 0.01;
   };
 
@@ -137,7 +142,7 @@ export default function IngresosAdicionalesPage() {
   const handleMetodoPagoChange = (nuevoMetodo: 'efectivo' | 'transferencia' | 'mixto') => {
     setMetodoPago(nuevoMetodo);
     const montoTotal = parseFloat(unformatNumber(monto)) || 0;
-    
+
     if (nuevoMetodo === 'efectivo') {
       setMontoEfectivo(formatNumberForInput(montoTotal));
       setMontoTransferencia('0');
@@ -163,6 +168,7 @@ export default function IngresosAdicionalesPage() {
       return;
     }
 
+    setIsCreating(true);
     try {
       const data: CrearIngresoAdicionalData = {
         concepto,
@@ -185,6 +191,8 @@ export default function IngresosAdicionalesPage() {
       }, 1200);
     } catch (error: any) {
       toast.error(error?.response?.data || 'Error al registrar el ingreso adicional');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -192,11 +200,38 @@ export default function IngresosAdicionalesPage() {
   const filteredIngresos = ingresosAdicionales.filter(ingreso => {
     const searchLower = searchValue.toLowerCase();
     return ingreso.concepto.toLowerCase().includes(searchLower) ||
-           (ingreso.categoria && ingreso.categoria.toLowerCase().includes(searchLower));
+      (ingreso.categoria && ingreso.categoria.toLowerCase().includes(searchLower));
   });
 
   const handleFiltersClick = () => {
     console.log('Abrir filtros avanzados');
+  };
+
+  const handleDeleteIngreso = async (ingreso: IngresoAdicional) => {
+    setIngresoToDelete(ingreso);
+    setConfirmDelete(true);
+  };
+
+  const confirmDeleteIngreso = async () => {
+    if (!ingresoToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await ingresosAdicionalesService.eliminarIngresoAdicional(ingresoToDelete.id);
+      toast.success('¡Ingreso adicional eliminado exitosamente!');
+      cargarDatos();
+      setConfirmDelete(false);
+      setIngresoToDelete(null);
+    } catch (error: any) {
+      toast.error(error?.response?.data || 'Error al eliminar el ingreso adicional');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setConfirmDelete(false);
+    setIngresoToDelete(null);
   };
 
   return (
@@ -205,7 +240,7 @@ export default function IngresosAdicionalesPage() {
         title="Ingresos Adicionales"
         subtitle="Registra ventas esporádicas de accesorios, servicios ocasionales y otros ingresos"
       />
-      
+
       {isLoading ? (
         <Spinner className="my-16" size="lg" />
       ) : (
@@ -219,21 +254,21 @@ export default function IngresosAdicionalesPage() {
                   <p className="text-3xl font-bold">{formatCurrency(totales.total_general)}</p>
                 </div>
               </Card>
-              
+
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Efectivo</h3>
                   <p className="text-3xl font-bold">{formatCurrency(totales.efectivo)}</p>
                 </div>
               </Card>
-              
+
               <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Transferencia</h3>
                   <p className="text-3xl font-bold">{formatCurrency(totales.transferencia)}</p>
                 </div>
               </Card>
-              
+
               <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold mb-2">Accesorios</h3>
@@ -261,6 +296,14 @@ export default function IngresosAdicionalesPage() {
           <div className="mt-8">
             <DataTable
               data={filteredIngresos}
+              actions={[
+                {
+                  icon: Trash2,
+                  onClick: handleDeleteIngreso,
+                  variant: 'danger',
+                  tooltip: 'Eliminar ingreso adicional'
+                }
+              ]}
               columns={[
                 {
                   key: 'concepto',
@@ -307,10 +350,9 @@ export default function IngresosAdicionalesPage() {
                     const isMixto = row.monto_efectivo > 0 && row.monto_transferencia > 0;
                     return (
                       <div className="flex flex-col gap-1">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          isMixto ? 'bg-purple-100 text-purple-700' :
-                          row.metodo_pago === 'efectivo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${isMixto ? 'bg-purple-100 text-purple-700' :
+                            row.metodo_pago === 'efectivo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
                           {isMixto ? 'Mixto' : row.metodo_pago === 'efectivo' ? 'Efectivo' : 'Transferencia'}
                         </span>
                         {isMixto && (
@@ -415,11 +457,10 @@ export default function IngresosAdicionalesPage() {
                   <button
                     type="button"
                     onClick={() => handleMetodoPagoChange('efectivo')}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      metodoPago === 'efectivo' 
-                        ? 'border-green-500 bg-green-50 text-green-700' 
+                    className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'efectivo'
+                        ? 'border-green-500 bg-green-50 text-green-700'
                         : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-green-300 hover:bg-green-25'
-                    }`}
+                      }`}
                   >
                     <div className="text-center">
                       <div className="text-lg font-semibold">💵</div>
@@ -429,11 +470,10 @@ export default function IngresosAdicionalesPage() {
                   <button
                     type="button"
                     onClick={() => handleMetodoPagoChange('transferencia')}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      metodoPago === 'transferencia' 
-                        ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                    className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'transferencia'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-blue-300 hover:bg-blue-25'
-                    }`}
+                      }`}
                   >
                     <div className="text-center">
                       <div className="text-lg font-semibold">🏦</div>
@@ -443,11 +483,10 @@ export default function IngresosAdicionalesPage() {
                   <button
                     type="button"
                     onClick={() => handleMetodoPagoChange('mixto')}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      metodoPago === 'mixto' 
-                        ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                    className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'mixto'
+                        ? 'border-purple-500 bg-purple-50 text-purple-700'
                         : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-purple-300 hover:bg-purple-25'
-                    }`}
+                      }`}
                   >
                     <div className="text-center">
                       <div className="text-lg font-semibold">💳</div>
@@ -491,16 +530,14 @@ export default function IngresosAdicionalesPage() {
 
               {/* Validación de montos */}
               {monto && (
-                <div className={`p-4 rounded-lg border-2 ${
-                  validarMontos() ? 'border-green-300 bg-green-50' : 'border-orange-300 bg-orange-50'
-                }`}>
+                <div className={`p-4 rounded-lg border-2 ${validarMontos() ? 'border-green-300 bg-green-50' : 'border-orange-300 bg-orange-50'
+                  }`}>
                   <div className="flex justify-between items-center text-sm mb-2">
                     <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
                       Total ingresado:
                     </span>
-                    <span className={`font-bold text-lg ${
-                      validarMontos() ? 'text-green-700' : 'text-orange-800'
-                    }`}>
+                    <span className={`font-bold text-lg ${validarMontos() ? 'text-green-700' : 'text-orange-800'
+                      }`}>
                       {formatCurrency(calcularTotalMontos())}
                     </span>
                   </div>
@@ -508,9 +545,8 @@ export default function IngresosAdicionalesPage() {
                     <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
                       Total requerido:
                     </span>
-                    <span className={`font-bold text-lg ${
-                      validarMontos() ? 'text-green-700' : 'text-blue-700'
-                    }`}>
+                    <span className={`font-bold text-lg ${validarMontos() ? 'text-green-700' : 'text-blue-700'
+                      }`}>
                       {formatCurrency(parseFloat(unformatNumber(monto)) || 0)}
                     </span>
                   </div>
@@ -531,13 +567,65 @@ export default function IngresosAdicionalesPage() {
 
               <Button
                 onClick={handleCrearIngreso}
-                disabled={!concepto || !monto || !validarMontos()}
+                disabled={!concepto || !monto || !validarMontos() || isCreating}
                 className="w-full"
               >
-                Registrar Ingreso Adicional
+                {isCreating ? (
+                  <div className="flex items-center justify-center">
+                    <Spinner size="sm" className="mr-2" />
+                    Registrando...
+                  </div>
+                ) : (
+                  'Registrar Ingreso Adicional'
+                )}
               </Button>
             </div>
           </Modal>
+
+          {/* Modal de confirmación de eliminación */}
+          {confirmDelete && ingresoToDelete && (
+            <Modal
+              isOpen={confirmDelete}
+              onClose={cancelDelete}
+              title="Confirmar eliminación"
+              size="sm"
+            >
+              <div className="text-center py-6">
+                <p className="text-lg font-medium mb-4 text-gray-600">
+                  ¿Estás seguro de que quieres eliminar este ingreso adicional?
+                </p>
+                <p className="text-sm text-gray-600">
+                  Concepto: {ingresoToDelete.concepto}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Monto: {formatCurrency(ingresoToDelete.monto)}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Fecha: {new Date(ingresoToDelete.fecha).toLocaleDateString('es-CO')}
+                </p>
+              </div>
+                             <div className="flex justify-end gap-2">
+                 <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
+                   Cancelar
+                 </Button>
+                 <Button 
+                   variant="secondary" 
+                   onClick={confirmDeleteIngreso} 
+                   className="bg-red-600 hover:bg-red-700 text-white"
+                   disabled={isDeleting}
+                 >
+                   {isDeleting ? (
+                     <div className="flex items-center justify-center">
+                       <Spinner size="sm" className="mr-2" />
+                       Eliminando...
+                     </div>
+                   ) : (
+                     'Eliminar'
+                   )}
+                 </Button>
+               </div>
+            </Modal>
+          )}
         </>
       )}
     </div>
