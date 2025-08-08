@@ -10,8 +10,59 @@ export interface Servicio {
   updated_at: string;
 }
 
+export interface ServicioRealizado {
+  id: number;
+  empleado_id: number;
+  servicio_id: number;
+  cantidad: string;
+  fecha: string;
+  metodo_pago: 'efectivo' | 'transferencia';
+  monto_efectivo: number;
+  monto_transferencia: number;
+  total_servicio: number;
+  descuento_porcentaje: number;
+  monto_descuento: number;
+  total_con_descuento: number;
+  empleado: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  servicio: {
+    id: number;
+    nombre: string;
+    precio: number;
+  };
+}
+
+export interface PaginationInfo {
+  current_page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+  from: number;
+  to: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationInfo;
+}
+
+interface ListarServiciosRealizadosParams {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  empleado_id?: number;
+}
+
 const getAll = async (): Promise<Servicio[]> => {
   const response = await api.get('/servicios/listar-servicio');
+  return response.data;
+};
+
+const listarServiciosRealizados = async (params: ListarServiciosRealizadosParams = {}): Promise<PaginatedResponse<ServicioRealizado>> => {
+  const response = await api.get('/servicios/listar-servicios-realizados', { params });
   return response.data;
 };
 
@@ -29,6 +80,7 @@ const createService = async (data: CreateServicioData): Promise<Servicio> => {
 
 export const servicioService = {
   getAll,
+  listarServiciosRealizados,
   createService,
   updateService: async (id: number, data: CreateServicioData): Promise<Servicio> => {
     const response = await api.put(`/servicios/modificar-servicio/${id}`, data);
