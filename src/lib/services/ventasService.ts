@@ -31,11 +31,11 @@ export interface Venta {
 }
 
 export interface CrearVentaData {
-  producto_id: number;
+  productoId: number;
   cantidad: number;
-  metodo_pago: 'efectivo' | 'transferencia' | 'mixto';
-  monto_efectivo?: number;
-  monto_transferencia?: number;
+  metodoPago: 'efectivo' | 'transferencia' | 'mixto';
+  montoEfectivo?: number;
+  montoTransferencia?: number;
   observaciones?: string;
 }
 
@@ -81,6 +81,10 @@ const obtenerVenta = async (id: number): Promise<Venta> => {
   return response.data;
 };
 
+const eliminarVenta = async (id: number): Promise<void> => {
+  await api.delete(`/ventas/eliminar-venta/${id}`);
+};
+
 const obtenerEstadisticas = async (): Promise<EstadisticasVentas> => {
   const response = await api.get('/ventas/estadisticas');
   return response.data;
@@ -90,5 +94,6 @@ export const ventasService = {
   crearVenta,
   listarVentas,
   obtenerVenta,
+  eliminarVenta,
   obtenerEstadisticas,
 };
