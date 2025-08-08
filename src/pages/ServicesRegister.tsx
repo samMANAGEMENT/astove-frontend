@@ -9,7 +9,7 @@ import Spinner from '../components/ui/Spinner';
 import { toast } from 'react-toastify';
 import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import servicioService from '../lib/services/servicioService';
+import servicioService, { type ServicioRealizado, type PaginationInfo } from '../lib/services/servicioService';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import '../lib/dateConfig';
 
@@ -26,30 +26,7 @@ interface Operador {
   name: string;
 }
 
-interface ServicioRealizado {
-  id: number;
-  empleado_id: number;
-  servicio_id: number;
-  cantidad: string;
-  fecha: string;
-  metodo_pago: 'efectivo' | 'transferencia';
-  monto_efectivo: number;
-  monto_transferencia: number;
-  total_servicio: number;
-  descuento_porcentaje: number;
-  monto_descuento: number;
-  total_con_descuento: number;
-  empleado: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
-  servicio: {
-    id: number;
-    nombre: string;
-    precio: number;
-  };
-}
+
 
 export default function ServicesRegister() {
   const { user } = useAuth();
@@ -68,6 +45,15 @@ export default function ServicesRegister() {
   const [modalOpen, setModalOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    current_page: 1,
+    per_page: 10,
+    total: 0,
+    total_pages: 0,
+    from: 0,
+    to: 0
+  });
+  const [perPage, setPerPage] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -118,18 +104,16 @@ export default function ServicesRegister() {
     setIsLoading(true);
     Promise.all([
       apiServicios.get('/servicios/listar-servicio'),
-      apiServicios.get('/servicios/listar-servicios-realizados')
+      cargarServiciosRealizados()
     ])
-      .then(([serviciosData, realizadosData]) => {
+      .then(([serviciosData]) => {
         // Asegurar que siempre sean arrays
         setServicios(Array.isArray(serviciosData) ? serviciosData : []);
-        setServiciosRealizados(Array.isArray(realizadosData) ? realizadosData : []);
       })
       .catch((error) => {
         console.error('Error cargando datos:', error);
         // En caso de error, establecer arrays vacíos
         setServicios([]);
-        setServiciosRealizados([]);
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -310,7 +294,7 @@ export default function ServicesRegister() {
          descuento_porcentaje: Number(descuentoPorcentaje) || 0
        });
       toast.success('¡Servicio asignado exitosamente!');
-      cargarServiciosRealizados();
+      cargarServiciosRealizados(1, searchValue); // Volver a la primera página después de agregar
       setTimeout(() => {
         handleCloseModal();
       }, 1200);
@@ -320,17 +304,38 @@ export default function ServicesRegister() {
   };
 
   // Recargar solo el histórico después de asignar
-  const cargarServiciosRealizados = () => {
-    setIsLoading(true);
-    apiServicios.get('/servicios/listar-servicios-realizados')
-      .then((realizadosData) => {
-        setServiciosRealizados(Array.isArray(realizadosData) ? realizadosData : []);
-      })
-      .catch((error) => {
-        console.error('Error recargando servicios realizados:', error);
-        setServiciosRealizados([]);
-      })
-      .finally(() => setIsLoading(false));
+  const cargarServiciosRealizados = async (page = 1, search = '', itemsPerPage = perPage) => {
+    try {
+      const params: any = {
+        page,
+        per_page: itemsPerPage
+      };
+
+      // Agregar búsqueda si existe
+      if (search) {
+        params.search = search;
+      }
+
+      // Si es operador, filtrar solo sus servicios
+      if (user?.role?.nombre === 'operador' && user?.operador?.id) {
+        params.empleado_id = user.operador.id;
+      }
+
+      const response = await servicioService.listarServiciosRealizados(params);
+      setServiciosRealizados(response.data);
+      setPagination(response.pagination);
+    } catch (error) {
+      console.error('Error recargando servicios realizados:', error);
+      setServiciosRealizados([]);
+      setPagination({
+        current_page: 1,
+        per_page: 10,
+        total: 0,
+        total_pages: 0,
+        from: 0,
+        to: 0
+      });
+    }
   };
 
   // Filtrar servicios por nombre
@@ -341,6 +346,25 @@ export default function ServicesRegister() {
 
   const handleFiltersClick = () => {
     console.log('Abrir filtros avanzados');
+  };
+
+  // Manejar cambio de página
+  const handlePageChange = (newPage: number) => {
+    cargarServiciosRealizados(newPage, searchValue);
+  };
+
+  // Manejar búsqueda en servicios realizados
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    // Resetear a página 1 cuando se busca
+    cargarServiciosRealizados(1, value);
+  };
+
+  // Manejar cambio de elementos por página
+  const handlePerPageChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    // Resetear a página 1 cuando se cambia el número de elementos por página
+    cargarServiciosRealizados(1, searchValue, newPerPage);
   };
 
   // Funciones para eliminar servicio realizado
@@ -356,7 +380,7 @@ export default function ServicesRegister() {
     try {
       await servicioService.deleteServicioRealizado(servicioToDelete.id);
       toast.success('Servicio eliminado correctamente');
-      cargarServiciosRealizados(); // Recargar la lista
+      cargarServiciosRealizados(pagination.current_page, searchValue); // Recargar la lista con la página actual
       setDeleteModalOpen(false);
       setServicioToDelete(null);
     } catch (error: any) {
@@ -387,7 +411,7 @@ export default function ServicesRegister() {
           <Card className="mb-6">
             <SearchFilters
               searchValue={searchValue}
-              onSearchChange={setSearchValue}
+              onSearchChange={handleSearchChange}
               onFiltersClick={handleFiltersClick}
               searchPlaceholder="Buscar servicios por nombre..."
             />
@@ -694,16 +718,38 @@ export default function ServicesRegister() {
 
           {/* Tabla de servicios realizados */}
           <div className="mt-12">
-            <h2 className="text-xl font-bold mb-4 text-black">
-              {user?.role?.nombre === 'operador' ? 'Mi Histórico de Servicios' : 'Histórico de Servicios Realizados'}
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-black">
+                {user?.role?.nombre === 'operador' ? 'Mi Histórico de Servicios' : 'Histórico de Servicios Realizados'}
+              </h2>
+              <div className="flex items-center space-x-4">
+                {pagination.total > 0 && (
+                  <div className="text-sm text-gray-600">
+                    Mostrando {pagination.from} a {pagination.to} de {pagination.total} registros
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600">Mostrar:</label>
+                  <select
+                    value={perPage}
+                    onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                    className="text-gray-600 border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span className="text-sm text-gray-600">por página</span>
+                </div>
+              </div>
+            </div>
             <DataTable
-              data={user?.role?.nombre === 'operador' 
-                ? serviciosRealizados.filter(servicio => 
-                    servicio.empleado.id.toString() === user.operador?.id?.toString()
-                  )
-                : serviciosRealizados
-              }
+              data={serviciosRealizados}
+              showPagination={true}
+              page={pagination.current_page}
+              totalPages={pagination.total_pages}
+              onPageChange={handlePageChange}
               columns={[
                 {
                   key: 'servicio',
