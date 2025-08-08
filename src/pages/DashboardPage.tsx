@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 import { pagosService, type GananciaNeta, type EstadoPagoEmpleado } from '../lib/services/pagosService';
 import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
 import PagoSemanalModal from '../components/PagoSemanalModal';
+import DailyEarningsDashboard from '../components/DailyEarningsDashboard';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -187,17 +188,13 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Bienvenido a tu panel de control</p>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Grid Principal */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
                   {stat.isLoading ? <Spinner size="sm" /> : stat.value}
@@ -223,7 +220,7 @@ const DashboardPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
+              <div className={`${stat.color} p-3 rounded-lg ml-4`}>
                 <div className="text-white">
                   {stat.icon}
                 </div>
@@ -233,11 +230,11 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Content Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Content Cards - Layout Mejorado (Ahora arriba) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Pagos Detallados */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Pagos a Empleados</h3>
             <div className="flex items-center space-x-2">
               <Badge variant="info">{(estadoPagos || []).length} empleados</Badge>
@@ -252,7 +249,7 @@ const DashboardPage: React.FC = () => {
               {(estadoPagos || []).length > 0 ? (
                 (estadoPagos || []).map((empleado: EstadoPagoEmpleado) => (
                   <div key={empleado.empleado_id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className="bg-blue-100 text-blue-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
                           {empleado.nombre[0]}{empleado.apellido[0]}
@@ -322,8 +319,8 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Resumen Financiero */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Resumen Financiero</h3>
             <div className="flex items-center space-x-2">
               <Calendar className="w-4 h-4 text-gray-400" />
@@ -454,8 +451,8 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Ingresos Adicionales */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Ingresos Adicionales</h3>
             <div className="flex items-center space-x-2">
               <Badge variant="info">
@@ -557,11 +554,12 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-
+      {/* Ganancias Diarias - Layout Compacto (Ahora abajo) */}
+      <DailyEarningsDashboard />
 
       {/* Acciones Rápidas */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Registrar Servicio', icon: <Activity className="w-5 h-5" />, color: 'bg-blue-500', route: '/servicios/registrar' },

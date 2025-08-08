@@ -128,6 +128,18 @@ const getAllPagos = async (): Promise<PagoHistorico[]> => {
   return response.data;
 };
 
+const getGananciasDiarias = async (fecha: string): Promise<any> => {
+  const response = await api.get('/servicios/ganancias-diarias', { params: { fecha } });
+  return response.data;
+};
+
+const getGananciasPorRango = async (fechaInicio: string, fechaFin: string): Promise<any> => {
+  const response = await api.get('/servicios/ganancias-por-rango', { 
+    params: { fecha_inicio: fechaInicio, fecha_fin: fechaFin } 
+  });
+  return response.data;
+};
+
 export const pagosService = {
   getPagosEmpleados,
   getPagosEmpleadosCompleto,
@@ -138,6 +150,8 @@ export const pagosService = {
   crearPagoSemanal,
   getEstadoPagosEmpleados,
   getAllPagos,
+  getGananciasDiarias,
+  getGananciasPorRango,
 };
 
 export default pagosService; 
