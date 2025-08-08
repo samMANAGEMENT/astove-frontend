@@ -6,6 +6,7 @@ import UsersListPage from "./pages/UsersListPage";
 import SucursalesPage from "./pages/SucursalesPage";
 import ClientesPage from "./pages/ClientesPage";
 import ProductsPage from "./pages/ProductsPage";
+import ProductosPage from "./pages/ProductosPage";
 import DefaultLayout from "./layout/default";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { LoadingOverlay } from "./components/ui";
@@ -61,6 +62,13 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <ProductsPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/productos" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <ProductosPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />

@@ -9,7 +9,8 @@ import {
   Activity,
   BarChart3,
   CreditCard,
-  PlusCircle
+  PlusCircle,
+  Package
 } from 'lucide-react';
 import { Spinner, Badge, Button } from './ui';
 import { useDailyEarnings } from '../hooks/useDailyEarnings';
@@ -81,13 +82,13 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
       borderColor: 'border-blue-200'
     },
     {
-      title: 'Pagar Empleados',
-      value: dailyData?.resumen_diario?.total_pagar_empleados || 0,
-      icon: <Users className="w-6 h-6" />,
-      color: 'bg-orange-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-700',
-      borderColor: 'border-orange-200'
+      title: 'Ventas Productos',
+      value: dailyData?.ventas_productos?.total_ventas || 0,
+      icon: <Package className="w-6 h-6" />,
+      color: 'bg-indigo-500',
+      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-700',
+      borderColor: 'border-indigo-200'
     },
     {
       title: 'Servicios Realizados',
@@ -159,7 +160,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                   <div className="flex-1">
                     <p className="text-xs font-medium text-gray-600 mb-1">{stat.title}</p>
                     <div className={`text-lg font-bold ${stat.textColor} mb-1`}>
-                      {stat.title === 'Servicios Realizados' 
+                      {stat.title === 'Servicios Realizados'
                         ? stat.value 
                         : formatCurrency(stat.value)
                       }
@@ -180,8 +181,8 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
             ))}
           </div>
 
-          {/* Métodos de Pago e Ingresos Adicionales - Layout Compacto */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Métodos de Pago, Ingresos Adicionales y Ventas de Productos - Layout Compacto */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                 <CreditCard className="w-4 h-4 mr-2 text-blue-600" />
@@ -225,6 +226,33 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                   <span className="text-gray-600">Otros:</span>
                   <span className="font-semibold text-orange-700">
                     {formatCurrency(dailyData.ingresos_adicionales_detalle?.otros || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                <Package className="w-4 h-4 mr-2 text-indigo-600" />
+                Ventas de Productos
+              </h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Total Ventas:</span>
+                  <span className="font-semibold text-indigo-700">
+                    {formatCurrency(dailyData.ventas_productos?.total_ventas || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Ganancia:</span>
+                  <span className="font-semibold text-green-700">
+                    {formatCurrency(dailyData.ventas_productos?.ganancia_ventas || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Cantidad:</span>
+                  <span className="font-semibold text-blue-700">
+                    {dailyData.ventas_productos?.cantidad_ventas || 0} ventas
                   </span>
                 </div>
               </div>
