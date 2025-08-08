@@ -7,6 +7,7 @@ import SucursalesPage from "./pages/SucursalesPage";
 import ClientesPage from "./pages/ClientesPage";
 import ProductsPage from "./pages/ProductsPage";
 import ProductosPage from "./pages/ProductosPage";
+import VentasPage from "./pages/VentasPage";
 import DefaultLayout from "./layout/default";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { LoadingOverlay } from "./components/ui";
@@ -69,6 +70,13 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <ProductosPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/ventas" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <VentasPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />

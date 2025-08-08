@@ -329,12 +329,12 @@ const ProductosPage: React.FC = () => {
       setIsLoading(true);
 
       const ventaData = {
-        producto_id: productoToVender.id,
+        productoId: productoToVender.id,
         cantidad: ventaFormData.cantidad,
-        metodo_pago: ventaFormData.metodo_pago,
-        monto_efectivo: ventaFormData.metodo_pago === 'efectivo' || ventaFormData.metodo_pago === 'mixto'
+        metodoPago: ventaFormData.metodo_pago,
+        montoEfectivo: ventaFormData.metodo_pago === 'efectivo' || ventaFormData.metodo_pago === 'mixto'
           ? ventaFormData.monto_efectivo : 0,
-        monto_transferencia: ventaFormData.metodo_pago === 'transferencia' || ventaFormData.metodo_pago === 'mixto'
+        montoTransferencia: ventaFormData.metodo_pago === 'transferencia' || ventaFormData.metodo_pago === 'mixto'
           ? ventaFormData.monto_transferencia : 0,
         observaciones: ventaFormData.observaciones || undefined
       };
@@ -950,7 +950,7 @@ const ProductosPage: React.FC = () => {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-blue-700">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(calcularTotalVenta())}</span>
+                  <span className="font-medium text-gray-600">{formatCurrency(calcularTotalVenta())}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">Ganancia total:</span>
@@ -958,7 +958,7 @@ const ProductosPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">Stock restante:</span>
-                  <span className="font-medium">{productoToVender.stock - ventaFormData.cantidad}</span>
+                  <span className="font-medium text-gray-600">{productoToVender.stock - ventaFormData.cantidad}</span>
                 </div>
               </div>
             </div>

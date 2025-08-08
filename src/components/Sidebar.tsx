@@ -17,6 +17,7 @@ import {
     ChartScatter,
     Package,
     PlusCircle,
+    ShoppingBag
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -57,6 +58,12 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
             label: 'Productos',
             icon: <Package className="w-5 h-5" />,
             href: '/productos'
+        },
+        {
+            id: 'ventas',
+            label: 'Ventas',
+            icon: <ShoppingBag className="w-5 h-5" />,
+            href: '/ventas'
         },
         {
             id: 'ingresos-adicionales',
