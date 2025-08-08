@@ -61,6 +61,11 @@ class IngresosAdicionalesService {
     return response.data;
   }
 
+  async eliminarIngresoAdicional(id: number): Promise<void> {
+    const response = await axios.delete(`/servicios/eliminar-ingreso-adicional/${id}`);
+    return response.data;
+  }
+
   async estadisticasCompletas(): Promise<any> {
     const response = await axios.get('/servicios/estadisticas-completas');
     return response.data;
