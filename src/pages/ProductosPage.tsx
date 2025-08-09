@@ -329,6 +329,7 @@ const ProductosPage: React.FC = () => {
       setIsLoading(true);
 
       const ventaData = {
+
         productoId: productoToVender.id,
         cantidad: ventaFormData.cantidad,
         metodoPago: ventaFormData.metodo_pago,
@@ -430,7 +431,7 @@ const ProductosPage: React.FC = () => {
     {
       key: 'nombre' as keyof Producto,
       header: 'Nombre',
-      render: (value: any, row: Producto) => (
+      render: (value: any) => (
         <div className="font-medium">{value}</div>
       ),
     },

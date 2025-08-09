@@ -11,11 +11,26 @@ export interface IngresoAdicional {
   categoria?: string;
   descripcion?: string;
   empleado_id?: number;
+  operador_id?: number;
+  servicio_realizado_id?: number;
   fecha: string;
   empleado?: {
     id: number;
     nombre: string;
     apellido: string;
+  };
+  operador?: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  servicio_realizado?: {
+    id: number;
+    servicio?: {
+      id: number;
+      nombre: string;
+      precio: number;
+    };
   };
 }
 
@@ -29,6 +44,7 @@ export interface CrearIngresoAdicionalData {
   categoria?: string;
   descripcion?: string;
   empleado_id?: number;
+  operador_id?: number;
   fecha: string;
 }
 

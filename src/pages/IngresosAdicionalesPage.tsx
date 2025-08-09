@@ -5,7 +5,9 @@ import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import { toast } from 'react-toastify';
 import { DataTable, PageHeader, SearchFilters, Card } from '../components/ui';
+import Autocomplete from '../components/ui/Autocomplete';
 import { useAuth } from '../contexts/AuthContext';
+import { useApi } from '../hooks/useApi';
 import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
 import { Trash2 } from 'lucide-react';
 import type {
@@ -36,6 +38,13 @@ export default function IngresosAdicionalesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Estados para operadores
+  const [operadores, setOperadores] = useState<{id: string, name: string}[]>([]);
+  const [selectedOperador, setSelectedOperador] = useState<{id: string, name: string} | null>(null);
+
+  // Hooks para API
+  const apiOperadores = useApi();
+
   // Función helper para formatear moneda en formato colombiano
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -63,6 +72,24 @@ export default function IngresosAdicionalesPage() {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  // Cargar operadores cuando se abre el modal
+  useEffect(() => {
+    if (modalOpen) {
+      apiOperadores.get('/operadores/listar-operador')
+        .then((data) => {
+          const operadoresMapeados = (Array.isArray(data) ? data : []).map((op: any) => ({
+            id: op.id,
+            name: `${op.nombre} ${op.apellido}`
+          }));
+          setOperadores(operadoresMapeados);
+        })
+        .catch((error) => {
+          console.error('Error cargando operadores:', error);
+          setOperadores([]);
+        });
+    }
+  }, [modalOpen]);
 
   const cargarDatos = async () => {
     setIsLoading(true);
@@ -121,6 +148,7 @@ export default function IngresosAdicionalesPage() {
     setTipo('accesorio');
     setCategoria('');
     setDescripcion('');
+    setSelectedOperador(null);
   };
 
   // Calcular total de los montos ingresados
@@ -163,6 +191,11 @@ export default function IngresosAdicionalesPage() {
       return;
     }
 
+    if (tipo === 'servicio_ocasional' && !selectedOperador) {
+      toast.error('Por favor selecciona un operador para el servicio ocasional');
+      return;
+    }
+
     if (!validarMontos()) {
       toast.error('La suma de efectivo y transferencia debe ser igual al monto total');
       return;
@@ -180,6 +213,7 @@ export default function IngresosAdicionalesPage() {
         categoria: categoria || undefined,
         descripcion: descripcion || undefined,
         empleado_id: user?.operador?.id,
+        operador_id: selectedOperador?.id ? parseInt(selectedOperador.id) : undefined,
         fecha: new Date().toISOString().slice(0, 10)
       };
 
@@ -384,6 +418,25 @@ export default function IngresosAdicionalesPage() {
                     );
                   },
                 },
+                {
+                  key: 'operador',
+                  header: 'Operador',
+                  render: (_: any, row: IngresoAdicional) => {
+                    if (row.tipo === 'servicio_ocasional' && row.operador) {
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-blue-700 font-medium">
+                            {`${row.operador.nombre} ${row.operador.apellido}`}
+                          </span>
+                          <span className="text-xs text-green-600 font-medium">
+                            💰 {formatCurrency(row.monto * 0.4)} (40%)
+                          </span>
+                        </div>
+                      );
+                    }
+                    return <span className="text-gray-400">-</span>;
+                  },
+                },
               ]}
               emptyMessage="No hay ingresos adicionales registrados aún."
             />
@@ -438,6 +491,26 @@ export default function IngresosAdicionalesPage() {
                   />
                 </div>
               </div>
+
+              {/* Selector de operador para servicios ocasionales */}
+              {tipo === 'servicio_ocasional' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Operador *</label>
+                  <Autocomplete
+                    options={operadores}
+                    value={selectedOperador}
+                    onChange={setSelectedOperador}
+                    placeholder="Selecciona un operador"
+                    loading={apiOperadores.isLoading}
+                  />
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center text-sm text-blue-700">
+                      <span className="mr-2">💡</span>
+                      <span>El operador recibirá el 40% del monto como ganancia</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-600">Descripción</label>
@@ -567,7 +640,7 @@ export default function IngresosAdicionalesPage() {
 
               <Button
                 onClick={handleCrearIngreso}
-                disabled={!concepto || !monto || !validarMontos() || isCreating}
+                disabled={!concepto || !monto || !validarMontos() || isCreating || (tipo === 'servicio_ocasional' && !selectedOperador)}
                 className="w-full"
               >
                 {isCreating ? (
@@ -576,7 +649,7 @@ export default function IngresosAdicionalesPage() {
                     Registrando...
                   </div>
                 ) : (
-                  'Registrar Ingreso Adicional'
+                  tipo === 'servicio_ocasional' ? 'Registrar Servicio Ocasional' : 'Registrar Ingreso Adicional'
                 )}
               </Button>
             </div>
