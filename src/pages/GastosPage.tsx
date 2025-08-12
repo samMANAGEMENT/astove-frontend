@@ -5,7 +5,6 @@ import {
   Edit, 
   Trash2, 
   DollarSign, 
-  Calendar,
   TrendingDown,
   AlertTriangle
 } from 'lucide-react';
@@ -16,7 +15,6 @@ import {
   Modal, 
   DataTable, 
   Spinner, 
-  Badge,
   Card,
   Pagination
 } from '../components/ui';
@@ -42,7 +40,7 @@ const GastosPage: React.FC = () => {
     fecha: new Date().toISOString().split('T')[0]
   });
 
-  const [errors, setErrors] = useState<Partial<CrearGastoData>>({});
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   // Load gastos
   const loadGastos = async () => {
@@ -133,7 +131,7 @@ const GastosPage: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CrearGastoData> = {};
+    const newErrors: {[key: string]: string} = {};
 
     if (!formData.descripcion.trim()) {
       newErrors.descripcion = 'La descripción es obligatoria';
@@ -198,14 +196,14 @@ const GastosPage: React.FC = () => {
     {
       key: 'descripcion' as keyof Gasto,
       header: 'Descripción',
-      render: (value: string) => (
+      render: (value: any) => (
         <div className="font-medium text-gray-900">{value}</div>
       )
     },
     {
       key: 'monto' as keyof Gasto,
       header: 'Monto',
-      render: (value: number) => (
+      render: (value: any) => (
         <div className="font-semibold text-red-600">
           {formatCurrency(value)}
         </div>
@@ -214,14 +212,14 @@ const GastosPage: React.FC = () => {
     {
       key: 'fecha' as keyof Gasto,
       header: 'Fecha',
-      render: (value: string) => (
+      render: (value: any) => (
         <div className="text-gray-600">{formatDate(value)}</div>
       )
     },
     {
       key: 'created_at' as keyof Gasto,
       header: 'Creado',
-      render: (value: string) => (
+      render: (value: any) => (
         <div className="text-sm text-gray-500">
           {new Date(value).toLocaleDateString('es-CO')}
         </div>
@@ -379,9 +377,11 @@ const GastosPage: React.FC = () => {
               placeholder="Descripción del gasto"
               value={formData.descripcion}
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-              error={errors.descripcion}
               required
             />
+            {errors.descripcion && (
+              <p className="text-red-500 text-sm mt-1">{errors.descripcion}</p>
+            )}
           </div>
 
           <div>
@@ -391,13 +391,15 @@ const GastosPage: React.FC = () => {
             <Input
               type="number"
               placeholder="0"
-              value={formData.monto}
+              value={formData.monto.toString()}
               onChange={(e) => setFormData({ ...formData, monto: parseFloat(e.target.value) || 0 })}
-              error={errors.monto}
               min="0"
               step="0.01"
               required
             />
+            {errors.monto && (
+              <p className="text-red-500 text-sm mt-1">{errors.monto}</p>
+            )}
           </div>
 
           <div>
@@ -408,9 +410,11 @@ const GastosPage: React.FC = () => {
               type="date"
               value={formData.fecha}
               onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-              error={errors.fecha}
               required
             />
+            {errors.fecha && (
+              <p className="text-red-500 text-sm mt-1">{errors.fecha}</p>
+            )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
