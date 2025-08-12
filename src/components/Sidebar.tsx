@@ -17,7 +17,8 @@ import {
     ChartScatter,
     Package,
     PlusCircle,
-    ShoppingBag
+    ShoppingBag,
+    TrendingDown
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -75,6 +76,12 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
 
     // Items solo para admin y supervisor
     const adminItems: SidebarItem[] = [
+        {
+            id: 'gastos',
+            label: 'Gastos',
+            icon: <TrendingDown className="w-5 h-5" />,
+            href: '/gastos'
+        },
         {
             id: 'shops',
             label: 'Pagos',

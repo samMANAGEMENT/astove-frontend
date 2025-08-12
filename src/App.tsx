@@ -22,6 +22,7 @@ import OperadoresPage from "./pages/OperadoresPage";
 import RolesPermissionsPage from "./pages/RolesPermissionsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import IngresosAdicionalesPage from "./pages/IngresosAdicionalesPage";
+import GastosPage from "./pages/GastosPage";
 
 
 function AppContent() {
@@ -105,6 +106,13 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <IngresosAdicionalesPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/gastos" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <GastosPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />

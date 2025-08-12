@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   TrendingUp, 
+  TrendingDown,
   DollarSign, 
   Activity,
   ArrowUpRight,
@@ -17,6 +18,7 @@ import { useApi } from '../hooks/useApi';
 import { useEffect } from 'react';
 import { pagosService, type GananciaNeta, type EstadoPagoEmpleado } from '../lib/services/pagosService';
 import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
+import gastosService from '../lib/services/gastosService';
 import PagoSemanalModal from '../components/PagoSemanalModal';
 import DailyEarningsDashboard from '../components/DailyEarningsDashboard';
 
@@ -33,6 +35,8 @@ const DashboardPage: React.FC = () => {
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = React.useState<EstadoPagoEmpleado | null>(null);
   const [estadisticasCompletas, setEstadisticasCompletas] = React.useState<any>(null);
   const [isLoadingEstadisticas, setIsLoadingEstadisticas] = React.useState(true);
+  const [totalGastosMes, setTotalGastosMes] = React.useState<number>(0);
+  const [isLoadingGastos, setIsLoadingGastos] = React.useState(true);
 
   // Hook para total ganado
   const totalGanadoApi = useApi();
@@ -110,6 +114,23 @@ const DashboardPage: React.FC = () => {
     loadEstadisticasCompletas();
   }, []);
 
+  // Cargar total de gastos del mes
+  useEffect(() => {
+    const loadTotalGastos = async () => {
+      try {
+        setIsLoadingGastos(true);
+        const data = await gastosService.totalGastosMes();
+        setTotalGastosMes(data.total_gastos_mes);
+      } catch (error) {
+        console.error('Error al cargar total de gastos:', error);
+      } finally {
+        setIsLoadingGastos(false);
+      }
+    };
+
+    loadTotalGastos();
+  }, []);
+
   const handlePagarEmpleado = (empleado: EstadoPagoEmpleado) => {
     setEmpleadoSeleccionado(empleado);
     setIsModalOpen(true);
@@ -182,6 +203,15 @@ const DashboardPage: React.FC = () => {
       changeType: 'neutral',
       icon: <CreditCard className="w-6 h-6" />,
       color: 'bg-blue-600'
+    },
+    {
+      title: 'Gastos del Mes',
+      value: new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGastosMes),
+      isLoading: isLoadingGastos,
+      change: '--',
+      changeType: 'neutral',
+      icon: <TrendingDown className="w-6 h-6" />,
+      color: 'bg-red-500'
     }
   ];
 
@@ -368,6 +398,24 @@ const DashboardPage: React.FC = () => {
                 <div className="text-right">
                   <div className="font-semibold text-orange-700">
                     {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta?.total_pagar_empleados || 0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Gastos Operativos */}
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-red-500 p-2 rounded-lg">
+                    <TrendingDown className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Gastos Operativos</div>
+                    <div className="text-sm text-gray-500">Este mes</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-red-700">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGastosMes)}
                   </div>
                 </div>
               </div>
@@ -564,6 +612,7 @@ const DashboardPage: React.FC = () => {
           {[
             { label: 'Registrar Servicio', icon: <Activity className="w-5 h-5" />, color: 'bg-blue-500', route: '/servicios/registrar' },
             { label: 'Ingresos Adicionales', icon: <PlusCircle className="w-5 h-5" />, color: 'bg-purple-500', route: '/ingresos-adicionales' },
+            { label: 'Gastos Operativos', icon: <TrendingDown className="w-5 h-5" />, color: 'bg-red-500', route: '/gastos' },
             { label: 'Ver Operadores', icon: <Users className="w-5 h-5" />, color: 'bg-green-500', route: '/operadores/lista' },
             { label: 'Ver Reportes', icon: <PieChart className="w-5 h-5" />, color: 'bg-orange-500', route: '/reportes/analytics' }
           ].map((action, index) => (
