@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button, Card, DataTable, PageHeader, Modal, Input, Spinner } from '../components/ui';
 import Autocomplete from '../components/ui/Autocomplete';
@@ -22,8 +22,12 @@ export default function PagosPage() {
   const [fecha, setFecha] = useState('');
   const [estado, setEstado] = useState(true);
   const [formErrors, setFormErrors] = useState<{ empleado_id?: string; monto?: string; fecha?: string }>({});
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pagoToDelete, setPagoToDelete] = useState<PagoHistorico | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const apiOperadores = useApi();
   const apiCrearPago = useApi();
+  const apiEliminarPago = useApi();
 
   // Cargar pagos al montar
   useEffect(() => {
@@ -102,6 +106,33 @@ export default function PagosPage() {
     }
   };
 
+  const handleDeletePago = (pago: PagoHistorico) => {
+    setPagoToDelete(pago);
+    setConfirmDelete(true);
+  };
+
+  const confirmDeletePago = async () => {
+    if (!pagoToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await apiEliminarPago.delete(`/pagos/eliminar-pago/${pagoToDelete.id}`);
+      toast.success('Pago eliminado exitosamente');
+      cargarPagos();
+      setConfirmDelete(false);
+      setPagoToDelete(null);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || 'Error al eliminar el pago');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setConfirmDelete(false);
+    setPagoToDelete(null);
+  };
+
   const columns = [
     {
       key: 'empleado' as keyof PagoHistorico,
@@ -138,6 +169,21 @@ export default function PagosPage() {
       header: 'Estado',
       render: (value: any, _row: PagoHistorico) => (
         <span className={`font-semibold ${value ? 'text-green-600' : 'text-red-600'}`}>{value ? 'Pagado' : 'Pendiente'}</span>
+      ),
+    },
+    {
+      key: 'id' as keyof PagoHistorico,
+      header: 'Acciones',
+      render: (_: any, row: PagoHistorico) => (
+        <Button
+          variant="outline"
+          size="sm"
+          icon={Trash2}
+          onClick={() => handleDeletePago(row)}
+          className="px-2 py-1 text-red-600 border-red-300 hover:bg-red-50"
+        >
+          Eliminar
+        </Button>
       ),
     },
   ];
@@ -216,6 +262,55 @@ export default function PagosPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Modal de confirmación de eliminación */}
+      {confirmDelete && pagoToDelete && (
+        <Modal
+          isOpen={confirmDelete}
+          onClose={cancelDelete}
+          title="Confirmar eliminación"
+          size="sm"
+        >
+          <div className="text-center py-6">
+            <p className="text-lg font-medium mb-4 text-gray-600">
+              ¿Estás seguro de que quieres eliminar este pago?
+            </p>
+            <p className="text-sm text-gray-600">
+              Empleado: {pagoToDelete.empleado.nombre} {pagoToDelete.empleado.apellido}
+            </p>
+            <p className="text-sm text-gray-600">
+              Monto: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(pagoToDelete.monto))}
+            </p>
+            <p className="text-sm text-gray-600">
+              Fecha: {new Date(pagoToDelete.fecha).toLocaleDateString('es-CO')}
+            </p>
+            <p className="text-xs text-red-600 mt-3">
+              ⚠️ Esta acción no se puede deshacer
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={cancelDelete} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={confirmDeletePago} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <div className="flex items-center justify-center">
+                  <Spinner size="sm" className="mr-2" />
+                  Eliminando...
+                </div>
+              ) : (
+                'Eliminar'
+              )}
+            </Button>
+          </div>
+        </Modal>
+      )}
+
       {isLoading && <Spinner className="my-16" size="lg" />}
     </div>
   );
