@@ -19,6 +19,7 @@ import {
   Pagination
 } from '../components/ui';
 import gastosService, { type Gasto, type CrearGastoData } from '../lib/services/gastosService';
+import { toast } from 'react-toastify';
 
 const GastosPage: React.FC = () => {
   const [gastos, setGastos] = useState<Gasto[]>([]);
@@ -32,6 +33,10 @@ const GastosPage: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [estadisticas, setEstadisticas] = useState<any>(null);
   const [isLoadingEstadisticas, setIsLoadingEstadisticas] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [gastoToDelete, setGastoToDelete] = useState<Gasto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CrearGastoData>({
@@ -156,31 +161,53 @@ const GastosPage: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (isEditMode && currentGasto) {
         await gastosService.actualizarGasto(currentGasto.id, formData);
+        toast.success('¡Gasto actualizado exitosamente!');
       } else {
         await gastosService.crearGasto(formData);
+        toast.success('¡Gasto creado exitosamente!');
       }
       
       closeModal();
       loadGastos();
       loadEstadisticas();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar gasto:', error);
+      toast.error(error?.response?.data?.message || 'Error al guardar el gasto');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (gasto: Gasto) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
-      try {
-        await gastosService.eliminarGasto(gasto.id);
-        loadGastos();
-        loadEstadisticas();
-      } catch (error) {
-        console.error('Error al eliminar gasto:', error);
-      }
+  const handleDeleteClick = (gasto: Gasto) => {
+    setGastoToDelete(gasto);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!gastoToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await gastosService.eliminarGasto(gastoToDelete.id);
+      toast.success('Gasto eliminado correctamente');
+      loadGastos();
+      loadEstadisticas();
+      setDeleteModalOpen(false);
+      setGastoToDelete(null);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error al eliminar el gasto');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalOpen(false);
+    setGastoToDelete(null);
   };
 
   const handleSearch = (value: string) => {
@@ -236,7 +263,7 @@ const GastosPage: React.FC = () => {
     },
     {
       icon: Trash2,
-      onClick: (gasto: Gasto) => handleDelete(gasto),
+      onClick: (gasto: Gasto) => handleDeleteClick(gasto),
       variant: 'danger' as const,
       tooltip: 'Eliminar'
     }
@@ -425,11 +452,61 @@ const GastosPage: React.FC = () => {
             >
               Cancelar
             </Button>
-            <Button type="submit">
-              {isEditMode ? 'Actualizar' : 'Crear'} Gasto
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear')} Gasto
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal 
+        isOpen={deleteModalOpen} 
+        onClose={handleCancelDelete} 
+        title="Confirmar Eliminación" 
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <AlertTriangle className="w-6 h-6 text-red-600" />
+            <div>
+              <h3 className="font-semibold text-red-800">¿Estás seguro?</h3>
+              <p className="text-sm text-red-700">
+                Esta acción no se puede deshacer. El gasto será eliminado permanentemente.
+              </p>
+            </div>
+          </div>
+
+          {gastoToDelete && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Detalles del gasto:</h4>
+              <div className="space-y-1 text-sm text-gray-600">
+                <p><span className="font-medium">Descripción:</span> {gastoToDelete.descripcion}</p>
+                <p><span className="font-medium">Monto:</span> {formatCurrency(gastoToDelete.monto)}</p>
+                <p><span className="font-medium">Fecha:</span> {formatDate(gastoToDelete.fecha)}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={handleCancelDelete}
+              disabled={isDeleting}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
