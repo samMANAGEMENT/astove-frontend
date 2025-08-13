@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import servicioService, { type ServicioRealizado, type PaginationInfo } from '../lib/services/servicioService';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import '../lib/dateConfig';
+import { formatDateForAPI } from '../lib/dateConfig';
 
 interface Servicio {
   id: string;
@@ -286,7 +287,7 @@ export default function ServicesRegister() {
          servicio_id: selectedServicio.id,
          empleado_id: selectedOperador.id,
          cantidad: Number(cantidad),
-         fecha: fechaServicio.toISOString().slice(0, 10), // Convertir Date a formato YYYY-MM-DD
+         fecha: formatDateForAPI(fechaServicio), // Formato YYYY-MM-DD en zona horaria local
          metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
          monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
          monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,

@@ -20,6 +20,7 @@ import {
 } from '../components/ui';
 import gastosService, { type Gasto, type CrearGastoData } from '../lib/services/gastosService';
 import { toast } from 'react-toastify';
+import { formatDateForAPI } from '../lib/dateConfig';
 
 const GastosPage: React.FC = () => {
   const [gastos, setGastos] = useState<Gasto[]>([]);
@@ -42,7 +43,7 @@ const GastosPage: React.FC = () => {
   const [formData, setFormData] = useState<CrearGastoData>({
     descripcion: '',
     monto: 0,
-    fecha: new Date().toISOString().split('T')[0]
+    fecha: formatDateForAPI(new Date())
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -107,7 +108,7 @@ const GastosPage: React.FC = () => {
     setFormData({
       descripcion: '',
       monto: 0,
-      fecha: new Date().toISOString().split('T')[0]
+      fecha: formatDateForAPI(new Date())
     });
     setErrors({});
     setIsEditMode(false);
