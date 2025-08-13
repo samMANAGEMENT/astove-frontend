@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Spinner, Badge, Button } from './ui';
 import { useDailyEarnings } from '../hooks/useDailyEarnings';
+import { formatDateForAPI } from '../lib/dateConfig';
 
 interface DailyEarningsDashboardProps {
   className?: string;
@@ -23,7 +24,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Usar el hook personalizado
-  const fechaString = selectedDate.toISOString().split('T')[0];
+  const fechaString = formatDateForAPI(selectedDate);
   const { data: dailyData, isLoading } = useDailyEarnings(fechaString);
 
   // Función para formatear moneda
