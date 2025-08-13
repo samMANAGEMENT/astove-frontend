@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useApi } from '../hooks/useApi';
 import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
 import { Trash2 } from 'lucide-react';
+import { formatDateForAPI } from '../lib/dateConfig';
 import type {
   IngresoAdicional,
   CrearIngresoAdicionalData,
@@ -214,7 +215,7 @@ export default function IngresosAdicionalesPage() {
         descripcion: descripcion || undefined,
         empleado_id: user?.operador?.id,
         operador_id: selectedOperador?.id ? parseInt(selectedOperador.id) : undefined,
-        fecha: new Date().toISOString().slice(0, 10)
+        fecha: formatDateForAPI(new Date())
       };
 
       await ingresosAdicionalesService.crearIngresoAdicional(data);
