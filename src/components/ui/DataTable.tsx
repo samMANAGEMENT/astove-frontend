@@ -22,7 +22,7 @@ interface DataTableProps<T> {
   actions?: Action<T>[];
   onRowClick?: (row: T) => void;
   className?: string;
-  emptyMessage?: string;
+  emptyMessage?: string | React.ReactNode;
   showPagination?: boolean;
   page?: number;
   totalPages?: number;
@@ -55,7 +55,11 @@ const DataTable = <T extends Record<string, any>>({
   if (data.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <p className="text-gray-500">{emptyMessage}</p>
+        {typeof emptyMessage === 'string' ? (
+          <p className="text-gray-500">{emptyMessage}</p>
+        ) : (
+          emptyMessage
+        )}
       </div>
     );
   }
