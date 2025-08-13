@@ -16,11 +16,13 @@ import {
   DataTable, 
   Spinner, 
   Card,
-  Pagination
+  Pagination,
+  CurrencyInput
 } from '../components/ui';
 import gastosService, { type Gasto, type CrearGastoData } from '../lib/services/gastosService';
 import { toast } from 'react-toastify';
 import { formatDateForAPI } from '../lib/dateConfig';
+import { formatCurrency } from '../lib/utils';
 
 const GastosPage: React.FC = () => {
   const [gastos, setGastos] = useState<Gasto[]>([]);
@@ -88,13 +90,7 @@ const GastosPage: React.FC = () => {
     loadEstadisticas();
   }, []);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { 
-      style: 'currency', 
-      currency: 'COP', 
-      minimumFractionDigits: 0 
-    }).format(amount);
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-CO', {
@@ -144,7 +140,9 @@ const GastosPage: React.FC = () => {
     }
 
     if (formData.monto <= 0) {
-      newErrors.monto = 'El monto debe ser mayor a 0';
+      newErrors.monto = 'El monto debe ser mayor a $0 COP';
+    } else if (formData.monto < 100) {
+      newErrors.monto = 'El monto mínimo es $100 COP';
     }
 
     if (!formData.fecha) {
@@ -230,7 +228,7 @@ const GastosPage: React.FC = () => {
     },
     {
       key: 'monto' as keyof Gasto,
-      header: 'Monto',
+      header: 'Monto (COP)',
       render: (value: any) => (
         <div className="font-semibold text-red-600">
           {formatCurrency(value)}
@@ -288,7 +286,7 @@ const GastosPage: React.FC = () => {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Gastos del Mes</p>
+              <p className="text-sm font-medium text-gray-600">Gastos del Mes (COP)</p>
               <p className="text-2xl font-bold text-red-600">
                 {formatCurrency(estadisticas.total_gastos_mes)}
               </p>
@@ -302,7 +300,7 @@ const GastosPage: React.FC = () => {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Gastos del Año</p>
+              <p className="text-sm font-medium text-gray-600">Gastos del Año (COP)</p>
               <p className="text-2xl font-bold text-orange-600">
                 {formatCurrency(estadisticas.total_gastos_anio)}
               </p>
@@ -412,23 +410,17 @@ const GastosPage: React.FC = () => {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Monto
-            </label>
-            <Input
-              type="number"
-              placeholder="0"
-              value={formData.monto.toString()}
-              onChange={(e) => setFormData({ ...formData, monto: parseFloat(e.target.value) || 0 })}
-              min="0"
-              step="0.01"
-              required
-            />
-            {errors.monto && (
-              <p className="text-red-500 text-sm mt-1">{errors.monto}</p>
-            )}
-          </div>
+          <CurrencyInput
+            label="Monto (COP)"
+            value={formData.monto}
+            onChange={(value) => setFormData({ ...formData, monto: value })}
+            placeholder="0"
+            required
+            min={100}
+            step={100}
+            error={errors.monto}
+            showPreview={true}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -483,7 +475,7 @@ const GastosPage: React.FC = () => {
               <h4 className="font-medium text-gray-900 mb-2">Detalles del gasto:</h4>
               <div className="space-y-1 text-sm text-gray-600">
                 <p><span className="font-medium">Descripción:</span> {gastoToDelete.descripcion}</p>
-                <p><span className="font-medium">Monto:</span> {formatCurrency(gastoToDelete.monto)}</p>
+                <p><span className="font-medium">Monto:</span> <span className="font-semibold text-red-600">{formatCurrency(gastoToDelete.monto)}</span></p>
                 <p><span className="font-medium">Fecha:</span> {formatDate(gastoToDelete.fecha)}</p>
               </div>
             </div>

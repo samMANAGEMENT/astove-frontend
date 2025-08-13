@@ -6,6 +6,7 @@ interface InputProps {
   placeholder?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   icon?: LucideIcon;
   iconPosition?: 'left' | 'right';
   disabled?: boolean;
@@ -23,6 +24,7 @@ const Input: React.FC<InputProps> = ({
   placeholder,
   value,
   onChange,
+  onBlur,
   icon: Icon,
   iconPosition = 'left',
   disabled = false,
@@ -50,6 +52,7 @@ const Input: React.FC<InputProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         disabled={disabled}
         className={classes}
         name={name}
