@@ -13,6 +13,7 @@ import {
   Spinner,
 } from '../components/ui';
 import { servicioService, type Servicio } from '../lib/services/servicioService';
+import { formatCurrency } from '../lib/utils';
 
 interface ServicioFormData {
   nombre: string;
@@ -181,14 +182,7 @@ const ServiciosPage: React.FC = () => {
     console.log('Ver servicio:', servicio);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+
 
   const columns = [
     {
@@ -208,10 +202,10 @@ const ServiciosPage: React.FC = () => {
     },
     {
       key: 'precio' as keyof Servicio,
-      header: 'Precio',
+      header: 'Precio (COP)',
       render: (value: string | number | boolean | undefined) => (
         <span className="font-medium text-green-600">
-          {typeof value === 'number' ? formatCurrency(value) : '$0'}
+          {typeof value === 'number' ? formatCurrency(value) : formatCurrency(0)}
         </span>
       ),
     },

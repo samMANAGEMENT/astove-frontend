@@ -15,4 +15,5 @@ export { default as CustomDatePicker } from './DatePicker';
 export { default as StatsCard } from './StatsCard';
 export { default as AdvancedFilters, QuickDateSelector, FilterField } from './AdvancedFilters';
 export { default as ReportGallery } from './ReportGallery';
-export { default as ReportSummary } from './ReportSummary'; 
+export { default as ReportSummary } from './ReportSummary';
+export { default as CurrencyInput } from './CurrencyInput'; 
