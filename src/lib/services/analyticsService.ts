@@ -112,12 +112,15 @@ class AnalyticsService {
       currency: 'COP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(value);
+    }).format(value).replace(/\./g, '|').replace(/,/g, '.').replace(/\|/g, ',');
   }
 
   // Método para formatear números
   formatNumber(value: number): string {
-    return new Intl.NumberFormat('es-CO').format(value);
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value).replace(/\./g, '|').replace(/,/g, '.').replace(/\|/g, ',');
   }
 
   // Método para formatear fechas

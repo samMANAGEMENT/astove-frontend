@@ -215,16 +215,23 @@ const AnalyticsPage: React.FC = () => {
   const formatColumnValue = (value: any, columnKey: string) => {
     if (value === null || value === undefined) return 'N/A';
     
+    // Convertir strings numéricos a números
+    let numericValue = value;
+    if (typeof value === 'string' && !isNaN(parseFloat(value))) {
+      numericValue = parseFloat(value);
+    }
+    
     // Formatear valores monetarios
-    if (typeof value === 'number' && columnKey.includes('ingresos') || 
-        columnKey.includes('monto') || columnKey.includes('total') || 
-        columnKey.includes('promedio') || columnKey.includes('pagos')) {
-      return analyticsService.formatCurrency(value);
+    if ((typeof numericValue === 'number' || typeof value === 'string') && 
+        (columnKey.includes('ingresos') || columnKey.includes('monto') || 
+         columnKey.includes('total') || columnKey.includes('promedio') || 
+         columnKey.includes('pagos') || columnKey.includes('ganancia'))) {
+      return analyticsService.formatCurrency(numericValue);
     }
     
     // Formatear números
-    if (typeof value === 'number') {
-      return analyticsService.formatNumber(value);
+    if (typeof numericValue === 'number') {
+      return analyticsService.formatNumber(numericValue);
     }
     
     // Formatear fechas
@@ -244,21 +251,27 @@ const AnalyticsPage: React.FC = () => {
       let icon = <DollarSign className="w-5 h-5" />;
       let colorClass = 'text-blue-600';
       
-      if (typeof value === 'number') {
+      // Convertir strings numéricos a números
+      let numericValue = value;
+      if (typeof value === 'string' && !isNaN(parseFloat(value))) {
+        numericValue = parseFloat(value);
+      }
+      
+      if (typeof numericValue === 'number' || (typeof value === 'string' && !isNaN(parseFloat(value)))) {
         if (key.includes('ingresos') || key.includes('monto') || key.includes('total')) {
-          formattedValue = analyticsService.formatCurrency(value);
+          formattedValue = analyticsService.formatCurrency(numericValue);
           icon = <TrendingUp className="w-5 h-5" />;
           colorClass = 'text-green-600';
         } else if (key.includes('gastos') || key.includes('pagos')) {
-          formattedValue = analyticsService.formatCurrency(value);
+          formattedValue = analyticsService.formatCurrency(numericValue);
           icon = <TrendingDown className="w-5 h-5" />;
           colorClass = 'text-red-600';
         } else if (key.includes('ganancia')) {
-          formattedValue = analyticsService.formatCurrency(value);
+          formattedValue = analyticsService.formatCurrency(numericValue);
           icon = <Target className="w-5 h-5" />;
-          colorClass = value >= 0 ? 'text-green-600' : 'text-red-600';
+          colorClass = numericValue >= 0 ? 'text-green-600' : 'text-red-600';
         } else {
-          formattedValue = analyticsService.formatNumber(value);
+          formattedValue = analyticsService.formatNumber(numericValue);
           icon = <Activity className="w-5 h-5" />;
           colorClass = 'text-blue-600';
         }
