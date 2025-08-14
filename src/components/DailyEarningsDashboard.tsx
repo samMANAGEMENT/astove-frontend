@@ -220,7 +220,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Servicios Ocasionales:</span>
                   <span className="font-semibold text-green-700">
-                    {formatCurrency(dailyData.ingresos_adicionales_detalle?.servicios_ocasionales || 0)}
+                    {dailyData.ingresos_adicionales_detalle?.servicios_ocasionales || 0} servicios
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
@@ -288,15 +288,24 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                         <div className="font-semibold text-green-700">
                           {formatCurrency(empleado.total_pagar)}
                         </div>
+                        <div className="text-xs text-gray-500">
+                          Bruto: {formatCurrency(empleado.total_bruto || 0)}
+                        </div>
                       </div>
                     </div>
                     
                     {/* Detalles de servicios - Solo los primeros 2 */}
                     <div className="space-y-1">
                       {empleado.servicios.slice(0, 2).map((servicio: any, idx: number) => (
-                        <div key={idx} className="flex justify-between text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                          <span className="truncate">{servicio.servicio_nombre} (x{servicio.cantidad})</span>
-                          <span className="font-medium">{formatCurrency(servicio.total_servicio)}</span>
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                            <span className="truncate">{servicio.servicio_nombre} (x{servicio.cantidad})</span>
+                            <span className="font-medium">{formatCurrency(servicio.total_servicio)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-500 px-2">
+                            <span>Bruto: {formatCurrency(servicio.total_bruto_servicio || 0)}</span>
+                            <span>{servicio.porcentaje_empleado}%</span>
+                          </div>
                         </div>
                       ))}
                       {empleado.servicios.length > 2 && (

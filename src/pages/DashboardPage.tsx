@@ -219,6 +219,10 @@ const DashboardPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
 
+
+      {/* Ganancias Diarias - Layout Compacto (Ahora abajo) */}
+      <DailyEarningsDashboard />
+
       {/* Stats Grid Principal */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
@@ -544,7 +548,7 @@ const DashboardPage: React.FC = () => {
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Servicios Ocasionales:</span>
                   <span className="font-semibold text-green-700">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasCompletas.ingresos_adicionales_detalle.servicios_ocasionales)}
+                    {estadisticasCompletas.ingresos_adicionales_detalle.servicios_ocasionales || 0} servicios
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
@@ -601,9 +605,6 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Ganancias Diarias - Layout Compacto (Ahora abajo) */}
-      <DailyEarningsDashboard />
 
       {/* Acciones Rápidas */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
