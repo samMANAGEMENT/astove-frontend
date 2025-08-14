@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Input from './Input';
-import { formatCurrency, parseCurrency } from '../../lib/utils';
+import { formatCurrency } from '../../lib/utils';
 
 interface CurrencyInputProps {
   value: number;
