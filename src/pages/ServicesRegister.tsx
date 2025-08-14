@@ -27,6 +27,14 @@ interface Operador {
   name: string;
 }
 
+interface ServicioSeleccionado {
+  servicio: Servicio;
+  cantidad: string;
+  descuentoPorcentaje: string;
+  total: number;
+  totalConDescuento: number;
+}
+
 
 
 export default function ServicesRegister() {
@@ -35,15 +43,16 @@ export default function ServicesRegister() {
   // Estados para servicios y operadores
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
-  const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
   const [selectedOperador, setSelectedOperador] = useState<Operador | null>(null);
-  const [cantidad, setCantidad] = useState('');
-  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState('');
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'transferencia' | 'mixto'>('efectivo');
   const [montoEfectivo, setMontoEfectivo] = useState('');
   const [montoTransferencia, setMontoTransferencia] = useState('');
   const [fechaServicio, setFechaServicio] = useState<Date>(new Date()); // Fecha por defecto: hoy
   const [modalOpen, setModalOpen] = useState(false);
+  
+  // Estados para múltiples servicios
+  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<ServicioSeleccionado[]>([]);
+  const [showServiciosSelector, setShowServiciosSelector] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -151,11 +160,11 @@ export default function ServicesRegister() {
 
   // Recalcular montos automáticamente cuando cambie la cantidad, descuento o el método de pago
   useEffect(() => {
-    if (cantidad && selectedServicio && modalOpen) {
-      const totalConDescuento = calcularTotalConDescuento();
+    if (serviciosSeleccionados.length > 0 && modalOpen) {
+      const totalServicios = calcularTotalServiciosSeleccionados();
       
       // Redondear a 2 decimales
-      const totalRedondeado = Math.round(totalConDescuento * 100) / 100;
+      const totalRedondeado = Math.round(totalServicios * 100) / 100;
       
       // Solo actualizar si los montos actuales no suman el total correcto
       const totalActual = calcularTotalMontos();
@@ -175,48 +184,112 @@ export default function ServicesRegister() {
         }
       }
     }
-  }, [cantidad, selectedServicio, metodoPago, modalOpen, descuentoPorcentaje]);
+  }, [serviciosSeleccionados, metodoPago, modalOpen]);
 
-  // Abrir modal y setear servicio seleccionado
-  const handleOpenModal = (servicio: Servicio) => {
-    setSelectedServicio(servicio);
-    setSelectedOperador(null);
-    setCantidad('');
-    setDescuentoPorcentaje('');
-    setMetodoPago('efectivo');
+
+
+     // Abrir modal y setear servicio seleccionado
+   const handleOpenModal = (servicio: Servicio) => {
+      setSelectedOperador(null);
+      setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
     setFechaServicio(new Date()); // Resetear a fecha actual
     setModalOpen(true);
     setSuccessMsg('');
+    
+    // Agregar el servicio seleccionado a la lista de múltiples servicios
+    const nuevoServicio: ServicioSeleccionado = {
+      servicio,
+      cantidad: '1',
+      descuentoPorcentaje: '0',
+      total: servicio.precio,
+      totalConDescuento: servicio.precio
+    };
+    setServiciosSeleccionados([nuevoServicio]);
   };
 
-  // Cerrar modal y resetear formulario
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedServicio(null);
-    setSelectedOperador(null);
-    setCantidad('');
-    setDescuentoPorcentaje('');
-    setMetodoPago('efectivo');
+
+
+  // Agregar servicio a la lista de seleccionados
+  const agregarServicioALista = (servicio: Servicio) => {
+    const yaExiste = serviciosSeleccionados.find(s => s.servicio.id === servicio.id);
+    if (yaExiste) {
+      toast.warning('Este servicio ya está en la lista');
+      return;
+    }
+
+    const nuevoServicio: ServicioSeleccionado = {
+      servicio,
+      cantidad: '1',
+      descuentoPorcentaje: '0',
+      total: servicio.precio,
+      totalConDescuento: servicio.precio
+    };
+
+    setServiciosSeleccionados([...serviciosSeleccionados, nuevoServicio]);
+  };
+
+  // Remover servicio de la lista
+  const removerServicioDeLista = (servicioId: string) => {
+    setServiciosSeleccionados(serviciosSeleccionados.filter(s => s.servicio.id !== servicioId));
+  };
+
+  // Actualizar cantidad de un servicio
+  const actualizarCantidadServicio = (servicioId: string, cantidad: string) => {
+    setServiciosSeleccionados(serviciosSeleccionados.map(s => {
+      if (s.servicio.id === servicioId) {
+        const total = s.servicio.precio * Number(cantidad);
+        const descuento = total * (Number(s.descuentoPorcentaje) / 100);
+        return {
+          ...s,
+          cantidad,
+          total,
+          totalConDescuento: total - descuento
+        };
+      }
+      return s;
+    }));
+  };
+
+  // Actualizar descuento de un servicio
+  const actualizarDescuentoServicio = (servicioId: string, descuento: string) => {
+    setServiciosSeleccionados(serviciosSeleccionados.map(s => {
+      if (s.servicio.id === servicioId) {
+        const total = s.servicio.precio * Number(s.cantidad);
+        const montoDescuento = total * (Number(descuento) / 100);
+        return {
+          ...s,
+          descuentoPorcentaje: descuento,
+          total,
+          totalConDescuento: total - montoDescuento
+        };
+      }
+      return s;
+    }));
+  };
+
+  // Calcular total de todos los servicios seleccionados
+  const calcularTotalServiciosSeleccionados = () => {
+    return serviciosSeleccionados.reduce((total, s) => total + s.totalConDescuento, 0);
+  };
+
+     // Cerrar modal y resetear formulario
+   const handleCloseModal = () => {
+     setModalOpen(false);
+      setSelectedOperador(null);
+      setMetodoPago('efectivo');
     setMontoEfectivo('');
     setMontoTransferencia('');
     setFechaServicio(new Date());
+    setServiciosSeleccionados([]);
   };
 
-  // Calcular total del servicio (sin descuento)
-  const calcularTotal = () => {
-    if (!selectedServicio || !cantidad) return 0;
-    return selectedServicio.precio * Number(cantidad);
-  };
 
-  // Calcular total con descuento aplicado
-  const calcularTotalConDescuento = () => {
-    const total = calcularTotal();
-    const descuento = Number(descuentoPorcentaje) || 0;
-    const montoDescuento = total * (descuento / 100);
-    return total - montoDescuento;
-  };
+
+
+
+
 
   // Calcular total de los montos ingresados
   const calcularTotalMontos = () => {
@@ -227,23 +300,23 @@ export default function ServicesRegister() {
 
   // Validar que los montos sumen el total con descuento
   const validarMontos = () => {
-    const totalConDescuento = calcularTotalConDescuento();
+    const totalServicios = calcularTotalServiciosSeleccionados();
     const totalMontos = calcularTotalMontos();
     
     // Redondear a 2 decimales para evitar problemas de precisión
-    const totalConDescuentoRedondeado = Math.round(totalConDescuento * 100) / 100;
+    const totalServiciosRedondeado = Math.round(totalServicios * 100) / 100;
     const totalMontosRedondeado = Math.round(totalMontos * 100) / 100;
     
-    return Math.abs(totalConDescuentoRedondeado - totalMontosRedondeado) < 0.01;
+    return Math.abs(totalServiciosRedondeado - totalMontosRedondeado) < 0.01;
   };
 
   // Actualizar montos automáticamente según método de pago
   const handleMetodoPagoChange = (nuevoMetodo: 'efectivo' | 'transferencia' | 'mixto') => {
     setMetodoPago(nuevoMetodo);
-    const totalConDescuento = calcularTotalConDescuento();
+    const totalServicios = calcularTotalServiciosSeleccionados();
     
     // Redondear a 2 decimales
-    const totalRedondeado = Math.round(totalConDescuento * 100) / 100;
+    const totalRedondeado = Math.round(totalServicios * 100) / 100;
     
     if (nuevoMetodo === 'efectivo') {
       setMontoEfectivo(formatNumberForInput(totalRedondeado));
@@ -259,9 +332,11 @@ export default function ServicesRegister() {
     }
   };
 
-  // Asignar servicio realizado
-  const handleAsignar = async () => {
-    if (!selectedServicio || !selectedOperador || !cantidad) return;
+
+
+  // Asignar múltiples servicios realizados
+  const handleAsignarMultiples = async () => {
+    if (!selectedOperador || serviciosSeleccionados.length === 0) return;
     
     // Validación adicional para operadores
     if (user?.role?.nombre === 'operador') {
@@ -271,36 +346,45 @@ export default function ServicesRegister() {
       }
     }
     
-         // Validar que la fecha sea válida
-     if (!fechaServicio || isNaN(fechaServicio.getTime())) {
-       toast.error('Por favor selecciona una fecha válida');
-       return;
-     }
+    // Validar que la fecha sea válida
+    if (!fechaServicio || isNaN(fechaServicio.getTime())) {
+      toast.error('Por favor selecciona una fecha válida');
+      return;
+    }
     
-    if (!validarMontos()) {
-      toast.error('La suma de efectivo y transferencia debe ser igual al total del servicio con descuento aplicado');
+    // Validar que los montos sumen el total
+    const totalServicios = calcularTotalServiciosSeleccionados();
+    const totalMontos = calcularTotalMontos();
+    
+    if (Math.abs(totalServicios - totalMontos) > 0.01) {
+      toast.error('La suma de efectivo y transferencia debe ser igual al total de todos los servicios');
       return;
     }
 
     try {
-             await apiAsignar.post('/servicios/servicio-realizado', {
-         servicio_id: selectedServicio.id,
-         empleado_id: selectedOperador.id,
-         cantidad: Number(cantidad),
-         fecha: formatDateForAPI(fechaServicio), // Formato YYYY-MM-DD en zona horaria local
-         metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
-         monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
-         monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
-         total_servicio: calcularTotal(), // Enviar el precio original (sin descuento)
-         descuento_porcentaje: Number(descuentoPorcentaje) || 0
-       });
-      toast.success('¡Servicio asignado exitosamente!');
-      cargarServiciosRealizados(1, searchValue); // Volver a la primera página después de agregar
+      const serviciosData = serviciosSeleccionados.map(s => ({
+        servicio_id: Number(s.servicio.id),
+        cantidad: Number(s.cantidad),
+        descuento_porcentaje: Number(s.descuentoPorcentaje) || 0
+      }));
+
+      await servicioService.createServiciosMultiples({
+        empleado_id: Number(selectedOperador.id),
+        fecha: formatDateForAPI(fechaServicio),
+        metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
+        monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
+        monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
+        servicios: serviciosData
+      });
+
+      toast.success(`¡${serviciosSeleccionados.length} servicios asignados exitosamente!`);
+      cargarServiciosRealizados(1, searchValue);
       setTimeout(() => {
-        handleCloseModal();
+        setModalOpen(false);
+        setServiciosSeleccionados([]);
       }, 1200);
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Error al asignar el servicio');
+      toast.error(e?.response?.data?.message || 'Error al asignar los servicios');
     }
   };
 
@@ -404,7 +488,9 @@ export default function ServicesRegister() {
           ? 'Registra servicios realizados en tu cuenta y consulta tu histórico'
           : 'Asigna servicios a empleados y consulta el histórico de movimientos'
         }
-      />
+      >
+
+      </PageHeader>
       {isLoading ? (
         <Spinner className="my-16" size="lg" />
       ) : (
@@ -418,12 +504,12 @@ export default function ServicesRegister() {
             />
           </Card>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12 pt-2">
-            {filteredServicios.map((servicio) => (
-              <div 
-                key={servicio.id} 
-                className="group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl" 
-                onClick={() => handleOpenModal(servicio)}
-              >
+                         {filteredServicios.map((servicio) => (
+               <div 
+                 key={servicio.id} 
+                 className="group relative transform transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
+                 onClick={() => handleOpenModal(servicio)}
+               >
                 <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 hover:border-blue-300 transition-all duration-300 h-full">
                   {/* Header con gradiente */}
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
@@ -452,12 +538,12 @@ export default function ServicesRegister() {
                     </div>
                   </div>
                   
-                  {/* Footer con indicador de acción */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-50 to-transparent h-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="flex items-center justify-center h-full">
-                      <span className="text-xs text-gray-500 font-medium">Click para asignar</span>
-                    </div>
-                  </div>
+                                     {/* Indicador de hover */}
+                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-50 to-transparent h-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                     <div className="flex items-center justify-center h-full">
+                       <span className="text-xs text-gray-600 font-medium">Clic para seleccionar</span>
+                     </div>
+                   </div>
                   
                   {/* Indicador de hover */}
                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -468,34 +554,28 @@ export default function ServicesRegister() {
             ))}
           </div>
 
-          <Modal isOpen={modalOpen} onClose={handleCloseModal} title={selectedServicio ? `Asignar: ${selectedServicio.nombre}` : 'Asignar Servicio'} size="lg">
+          <Modal isOpen={modalOpen} onClose={handleCloseModal} title="Asignar Servicios" size="xl">
             <div className="space-y-6">
-              {/* Información del servicio */}
-              {selectedServicio && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-800 mb-2">Información del Servicio</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Precio unitario:</span>
-                      <span className="ml-2 font-semibold text-green-700">
-                        {formatCurrency(selectedServicio.precio)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Total:</span>
-                      <span className="ml-2 font-semibold text-blue-700">
-                        {formatCurrency(calcularTotalConDescuento())}
-                      </span>
-                    </div>
+              {/* Información general */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">📋</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-800">Registro de Servicios</h3>
+                    <p className="text-sm text-blue-700">
+                      Configura los servicios seleccionados y agrega más si es necesario.
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Selección de operador y fecha */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="block text-sm font-medium mb-1 text-gray-500">Empleado/Operador</label>
                   {user?.role?.nombre === 'operador' ? (
-                    // Si es operador, mostrar información fija con altura consistente
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 h-[42px] flex items-center">
                       <div className="flex items-center space-x-3 w-full">
                         <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -510,7 +590,6 @@ export default function ServicesRegister() {
                       </div>
                     </div>
                   ) : (
-                    // Si es admin o supervisor, mostrar selector
                     <Autocomplete
                       options={operadores}
                       value={selectedOperador}
@@ -521,66 +600,146 @@ export default function ServicesRegister() {
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <label className="block text-sm font-medium mb-1 text-gray-500">Cantidad</label>
-                  <Input
-                    type="number"
-                    value={cantidad}
-                    onChange={e => setCantidad(e.target.value)}
-                    placeholder="Cantidad"
+                  <label className="block text-sm font-medium mb-1 text-gray-500">Fecha del Servicio</label>
+                  <CustomDatePicker
+                    selected={fechaServicio}
+                    onChange={(date) => setFechaServicio(date || new Date())}
+                    placeholder="Seleccionar fecha"
                     className="h-[42px]"
                   />
+                  {fechaServicio && fechaServicio.toDateString() !== new Date().toDateString() && (
+                    <div className="mt-1 text-xs text-blue-600 font-medium">
+                      📅 Registrando servicio para fecha: {fechaServicio.toLocaleDateString('es-CO')}
+                    </div>
+                  )}
                 </div>
-                                 <div className="flex flex-col">
-                   <label className="block text-sm font-medium mb-1 text-gray-500">Fecha del Servicio</label>
-                   <CustomDatePicker
-                     selected={fechaServicio}
-                     onChange={(date) => setFechaServicio(date || new Date())}
-                     placeholder="Seleccionar fecha"
-                     className="h-[42px]"
-                   />
-                   {fechaServicio && fechaServicio.toDateString() !== new Date().toDateString() && (
-                     <div className="mt-1 text-xs text-blue-600 font-medium">
-                       📅 Registrando servicio para fecha: {fechaServicio.toLocaleDateString('es-CO')}
-                     </div>
-                   )}
-                 </div>
               </div>
 
-              {/* Campo de descuento */}
+              {/* Lista de servicios seleccionados */}
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-500">Descuento (%)</label>
-                <Input
-                  type="number"
-                  value={descuentoPorcentaje}
-                  onChange={e => setDescuentoPorcentaje(e.target.value)}
-                  placeholder="0"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-                {Number(descuentoPorcentaje) > 0 && (
-                  <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-orange-700">Precio original:</span>
-                      <span className="font-semibold text-orange-800">
-                        {formatCurrency(calcularTotal())}
-                      </span>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">{serviciosSeleccionados.length}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-orange-700">Descuento ({descuentoPorcentaje}%):</span>
-                      <span className="font-semibold text-orange-800">
-                        -{formatCurrency(calcularTotal() * (Number(descuentoPorcentaje) / 100))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm font-bold border-t border-orange-200 pt-2 mt-2">
-                      <span className="text-orange-700">Total con descuento:</span>
-                      <span className="text-orange-800">
-                        {formatCurrency(calcularTotalConDescuento())}
-                      </span>
-                    </div>
+                    <h3 className="font-semibold text-gray-800">Servicios Seleccionados</h3>
+                  </div>
+                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {serviciosSeleccionados.length} servicio(s)
+                  </span>
+                </div>
+                
+                {serviciosSeleccionados.length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <p className="text-gray-500">No hay servicios seleccionados</p>
+                    <p className="text-sm text-gray-400 mt-1">Haz clic en los servicios de abajo para agregarlos</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {serviciosSeleccionados.map((servicioSeleccionado) => (
+                      <div key={servicioSeleccionado.servicio.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-all">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className="font-medium text-gray-900">
+                                {servicioSeleccionado.servicio.nombre}
+                              </h4>
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                {servicioSeleccionado.servicio.porcentaje_pago_empleado}% empleado
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500">
+                              Precio unitario: {formatCurrency(servicioSeleccionado.servicio.precio)}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removerServicioDeLista(servicioSeleccionado.servicio.id)}
+                            className="text-red-600 border-red-300 hover:bg-red-50 hover:scale-110 transition-transform"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Cantidad</label>
+                            <Input
+                              type="number"
+                              value={servicioSeleccionado.cantidad}
+                              onChange={(e) => actualizarCantidadServicio(servicioSeleccionado.servicio.id, e.target.value)}
+                              min="1"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Descuento (%)</label>
+                            <Input
+                              type="number"
+                              value={servicioSeleccionado.descuentoPorcentaje}
+                              onChange={(e) => actualizarDescuentoServicio(servicioSeleccionado.servicio.id, e.target.value)}
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Subtotal:</span>
+                            <span className="font-medium">{formatCurrency(servicioSeleccionado.total)}</span>
+                          </div>
+                          {Number(servicioSeleccionado.descuentoPorcentaje) > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Descuento:</span>
+                              <span className="font-medium text-orange-600">
+                                -{formatCurrency(servicioSeleccionado.total - servicioSeleccionado.totalConDescuento)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm font-semibold">
+                            <span className="text-gray-800">Total:</span>
+                            <span className="text-blue-600">{formatCurrency(servicioSeleccionado.totalConDescuento)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+                
+                {/* Botón para agregar más servicios */}
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const serviciosDisponibles = servicios.filter(s => 
+                        !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)
+                      );
+                      
+                      if (serviciosDisponibles.length === 0) {
+                        toast.info('Ya tienes todos los servicios agregados');
+                        return;
+                      }
+                      
+                      setShowServiciosSelector(true);
+                    }}
+                    className="w-full border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 py-3"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-lg">➕</span>
+                      <span>Agregar Otro Servicio</span>
+                      <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+                        {servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length} disponibles
+                      </span>
+                    </div>
+                  </Button>
+                </div>
               </div>
+
+
 
               {/* Método de pago */}
               <div>
@@ -664,11 +823,21 @@ export default function ServicesRegister() {
               </div>
 
               {/* Validación de montos */}
-              {cantidad && (
+              {serviciosSeleccionados.length > 0 && (
                 <div className={`p-4 rounded-lg border-2 ${
                   validarMontos() ? 'border-green-300 bg-green-50' : 'border-orange-300 bg-orange-50'
                 }`}>
                   <div className="flex justify-between items-center text-sm mb-2">
+                    <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
+                      Total servicios:
+                    </span>
+                    <span className={`font-bold text-lg ${
+                      validarMontos() ? 'text-green-700' : 'text-orange-800'
+                    }`}>
+                      {formatCurrency(calcularTotalServiciosSeleccionados())}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
                     <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
                       Total ingresado:
                     </span>
@@ -678,20 +847,10 @@ export default function ServicesRegister() {
                       {formatCurrency(calcularTotalMontos())}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className={`font-medium ${validarMontos() ? 'text-green-700' : 'text-orange-800'}`}>
-                      Total requerido:
-                    </span>
-                    <span className={`font-bold text-lg ${
-                      validarMontos() ? 'text-green-700' : 'text-blue-700'
-                    }`}>
-                      {formatCurrency(calcularTotalConDescuento())}
-                    </span>
-                  </div>
                   {!validarMontos() && (
                     <div className="text-orange-800 text-xs mt-3 font-medium flex items-center">
                       <span className="mr-1">⚠️</span>
-                      Los montos deben sumar exactamente el total del servicio
+                      Los montos deben sumar exactamente el total de todos los servicios
                     </div>
                   )}
                   {validarMontos() && (
@@ -704,11 +863,11 @@ export default function ServicesRegister() {
               )}
 
               <Button
-                onClick={handleAsignar}
-                disabled={!selectedOperador || !cantidad || !validarMontos() || apiAsignar.isLoading}
+                onClick={handleAsignarMultiples}
+                disabled={!selectedOperador || serviciosSeleccionados.length === 0 || !validarMontos()}
                 className="w-full"
               >
-                {apiAsignar.isLoading ? 'Asignando...' : user?.role?.nombre === 'operador' ? 'Registrar Mi Servicio' : 'Asignar Servicio'}
+                {user?.role?.nombre === 'operador' ? 'Registrar Mis Servicios' : 'Registrar Servicios'}
               </Button>
               {successMsg && <div className="text-green-600 text-center font-semibold mt-2">{successMsg}</div>}
               {apiAsignar.error && <div className="text-red-500 text-center mt-2">{apiAsignar.error}</div>}
@@ -906,6 +1065,58 @@ export default function ServicesRegister() {
               </div>
             </div>
           </Modal>
+
+          {/* Modal selector de servicios */}
+          <Modal 
+            isOpen={showServiciosSelector} 
+            onClose={() => setShowServiciosSelector(false)} 
+            title="Seleccionar Servicio" 
+            size="lg"
+          >
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-2">Servicios Disponibles</h3>
+                <p className="text-sm text-blue-700">
+                  Selecciona el servicio que deseas agregar a tu lista.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                {servicios
+                  .filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id))
+                  .map((servicio) => (
+                    <div 
+                      key={servicio.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all"
+                      onClick={() => {
+                        agregarServicioALista(servicio);
+                        setShowServiciosSelector(false);
+                        toast.success(`Servicio "${servicio.nombre}" agregado`);
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900">{servicio.nombre}</h4>
+                        <span className="text-sm text-gray-500">Clic para agregar</span>
+                      </div>
+                      <div className="text-lg font-bold text-green-700">
+                        {formatCurrency(servicio.precio)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {servicio.porcentaje_pago_empleado}% para empleado
+                      </div>
+                    </div>
+                  ))}
+              </div>
+              
+              {servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No hay más servicios disponibles</p>
+                  <p className="text-sm text-gray-400 mt-1">Ya tienes todos los servicios agregados</p>
+                </div>
+              )}
+            </div>
+          </Modal>
+
         </>
       )}
     </div>
