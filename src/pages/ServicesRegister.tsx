@@ -54,6 +54,7 @@ export default function ServicesRegister() {
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState<ServicioSeleccionado[]>([]);
   const [showServiciosSelector, setShowServiciosSelector] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [servicioSearchValue, setServicioSearchValue] = useState('');
   const [serviciosRealizados, setServiciosRealizados] = useState<ServicioRealizado[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     current_page: 1,
@@ -228,6 +229,7 @@ export default function ServicesRegister() {
     };
 
     setServiciosSeleccionados([...serviciosSeleccionados, nuevoServicio]);
+    setServicioSearchValue(''); // Limpiar el campo de búsqueda
   };
 
   // Remover servicio de la lista
@@ -710,32 +712,111 @@ export default function ServicesRegister() {
                   </div>
                 )}
                 
-                {/* Botón para agregar más servicios */}
+                {/* Selector de servicios con autocomplete */}
                 <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const serviciosDisponibles = servicios.filter(s => 
-                        !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)
-                      );
-                      
-                      if (serviciosDisponibles.length === 0) {
-                        toast.info('Ya tienes todos los servicios agregados');
-                        return;
-                      }
-                      
-                      setShowServiciosSelector(true);
-                    }}
-                    className="w-full border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 py-3"
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <span className="text-lg">➕</span>
-                      <span>Agregar Otro Servicio</span>
-                      <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-800">Agregar Servicio</h4>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                         {servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length} disponibles
                       </span>
                     </div>
-                  </Button>
+                    
+                    {servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            value={servicioSearchValue}
+                            onChange={(e) => setServicioSearchValue(e.target.value)}
+                            placeholder="Buscar y seleccionar servicio..."
+                            className="pr-10"
+                          />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <span className="text-gray-400">🔍</span>
+                          </div>
+                        </div>
+                        
+                        {/* Lista de servicios filtrados */}
+                        {servicioSearchValue && servicios.filter(s => 
+                          !serviciosSeleccionados.find(ss => ss.servicio.id === s.id) &&
+                          s.nombre.toLowerCase().includes(servicioSearchValue.toLowerCase())
+                        ).length > 0 && (
+                          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                            {servicios.filter(s => 
+                              !serviciosSeleccionados.find(ss => ss.servicio.id === s.id) &&
+                              s.nombre.toLowerCase().includes(servicioSearchValue.toLowerCase())
+                            ).map((servicio) => (
+                              <div
+                                key={servicio.id}
+                                onClick={() => agregarServicioALista(servicio)}
+                                className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">{servicio.nombre}</div>
+                                    <div className="text-sm text-gray-500">
+                                      {servicio.porcentaje_pago_empleado}% para empleado
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-bold text-green-700">
+                                      {formatCurrency(servicio.precio)}
+                                    </div>
+                                    <div className="text-xs text-gray-400">Clic para agregar</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Mensaje cuando no hay resultados */}
+                        {servicioSearchValue && servicios.filter(s => 
+                          !serviciosSeleccionados.find(ss => ss.servicio.id === s.id) &&
+                          s.nombre.toLowerCase().includes(servicioSearchValue.toLowerCase())
+                        ).length === 0 && (
+                          <div className="text-center py-4 text-gray-500 text-sm">
+                            No se encontraron servicios con "{servicioSearchValue}"
+                          </div>
+                        )}
+                        
+                        {/* Lista de servicios disponibles (cuando no hay búsqueda) */}
+                        {!servicioSearchValue && servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length > 0 && (
+                          <div className="text-center py-2">
+                            <div className="text-xs text-gray-500 mb-2">
+                              Escribe para buscar servicios disponibles
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                              {servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).slice(0, 3).map((servicio) => (
+                                <div
+                                  key={servicio.id}
+                                  onClick={() => agregarServicioALista(servicio)}
+                                  className="p-2 hover:bg-blue-50 cursor-pointer border border-gray-200 rounded transition-colors"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-gray-700">{servicio.nombre}</span>
+                                    <span className="text-sm font-bold text-green-600">
+                                      {formatCurrency(servicio.precio)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                              {servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length > 3 && (
+                                <div className="text-xs text-gray-400 italic">
+                                  +{servicios.filter(s => !serviciosSeleccionados.find(ss => ss.servicio.id === s.id)).length - 3} más disponibles
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="text-gray-500 text-sm">🎉 ¡Ya tienes todos los servicios agregados!</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
