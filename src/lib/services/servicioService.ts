@@ -73,6 +73,21 @@ interface CreateServicioData {
   porcentaje_pago_empleado: number;
 }
 
+interface ServicioMultiple {
+  servicio_id: number;
+  cantidad: number;
+  descuento_porcentaje?: number;
+}
+
+interface CreateServiciosMultiplesData {
+  empleado_id: number;
+  fecha: string;
+  metodo_pago: 'efectivo' | 'transferencia';
+  monto_efectivo: number;
+  monto_transferencia: number;
+  servicios: ServicioMultiple[];
+}
+
 const createService = async (data: CreateServicioData): Promise<Servicio> => {
   const response = await api.post('/servicios/crear-servicio', data);
   return response.data;
@@ -82,6 +97,10 @@ export const servicioService = {
   getAll,
   listarServiciosRealizados,
   createService,
+  createServiciosMultiples: async (data: CreateServiciosMultiplesData): Promise<{ message: string; servicios_creados: number; total_general: number }> => {
+    const response = await api.post('/servicios/servicios-multiples', data);
+    return response.data;
+  },
   updateService: async (id: number, data: CreateServicioData): Promise<Servicio> => {
     const response = await api.put(`/servicios/modificar-servicio/${id}`, data);
     return response.data;
