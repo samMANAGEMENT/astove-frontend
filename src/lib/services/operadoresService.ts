@@ -26,7 +26,6 @@ export interface Operador {
   };
   usuario: {
     id: number;
-    name: string;
     email: string;
   } | null;
 }
@@ -42,6 +41,16 @@ interface CreateOperadorData {
   entidad_id: number;
   telefono: string;
   cargo_id: number;
+  email: string;
+  password: string;
+}
+
+interface UpdateOperadorData {
+  nombre: string;
+  apellido: string;
+  entidad_id: number;
+  telefono: string;
+  cargo_id: number;
 }
 
 const createOperador = async (data: CreateOperadorData): Promise<Operador> => {
@@ -52,7 +61,7 @@ const createOperador = async (data: CreateOperadorData): Promise<Operador> => {
 export const operadoresService = {
   getAll,
   createOperador,
-  updateOperador: async (id: number, data: CreateOperadorData): Promise<Operador> => {
+  updateOperador: async (id: number, data: UpdateOperadorData): Promise<Operador> => {
     const response = await api.put(`/operadores/modificar-operador/${id}`, data);
     return response.data;
   },
