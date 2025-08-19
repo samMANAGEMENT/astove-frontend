@@ -4,8 +4,7 @@ export interface Entidad {
   id: number;
   nombre: string;
   direccion?: string;
-  telefono?: string;
-  email?: string;
+  estado: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -13,7 +12,7 @@ export interface Entidad {
 class EntidadesService {
   async getEntidades(): Promise<Entidad[]> {
     const response = await axios.get('/entidad/listar-entidades');
-    return response.data.data || [];
+    return response.data || [];
   }
 }
 

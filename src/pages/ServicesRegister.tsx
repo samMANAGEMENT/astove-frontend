@@ -106,6 +106,14 @@ export default function ServicesRegister() {
       const [year, month, day] = dateValue.split('-');
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('es-CO');
     }
+    // Si viene como datetime con hora, mostrar fecha y hora
+    if (typeof dateValue === 'string' && dateValue.includes(':')) {
+      const date = new Date(dateValue);
+      return date.toLocaleDateString('es-CO') + ' ' + date.toLocaleTimeString('es-CO', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
     // Si viene como datetime, usar el método normal
     return new Date(dateValue).toLocaleDateString('es-CO');
   };
