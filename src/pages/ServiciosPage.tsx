@@ -259,7 +259,7 @@ const ServiciosPage: React.FC = () => {
     ...(user?.role?.nombre === 'admin' ? [{
       key: 'entidad_id' as keyof Servicio,
       header: 'Entidad',
-      render: (value: string | number | boolean | undefined, row: Servicio) => {
+      render: (_value: string | number | boolean | undefined, row: Servicio) => {
         const entidad = entidades.find(e => e.id === row.entidad_id);
         return (
           <span className="text-sm text-gray-600">
