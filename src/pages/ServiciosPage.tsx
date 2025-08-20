@@ -13,18 +13,23 @@ import {
   Spinner,
 } from '../components/ui';
 import { servicioService, type Servicio } from '../lib/services/servicioService';
+import entidadesService, { type Entidad } from '../lib/services/entidadesService';
 import { formatCurrency } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ServicioFormData {
   nombre: string;
   precio: number;
   estado: boolean;
   porcentaje_pago_empleado: number;
+  entidad_id?: number;
 }
 
 const ServiciosPage: React.FC = () => {
+  const { user } = useAuth();
   const [searchValue, setSearchValue] = useState('');
   const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [entidades, setEntidades] = useState<Entidad[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editingServicio, setEditingServicio] = useState<Servicio | null>(null);
@@ -59,7 +64,10 @@ const ServiciosPage: React.FC = () => {
 
   useEffect(() => {
     loadServicios();
-  }, []);
+    if (user?.role?.nombre === 'admin') {
+      loadEntidades();
+    }
+  }, [user]);
 
   const loadServicios = async () => {
     try {
@@ -74,12 +82,23 @@ const ServiciosPage: React.FC = () => {
     }
   };
 
+  const loadEntidades = async () => {
+    try {
+      const data = await entidadesService.getEntidades();
+      setEntidades(data);
+    } catch (error) {
+      console.error('Error al cargar entidades:', error);
+      toast.error('Error al cargar la lista de entidades');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       nombre: '',
       precio: 0,
       estado: true,
       porcentaje_pago_empleado: 40,
+      entidad_id: undefined,
     });
     setFormErrors({});
     setEditingServicio(null);
@@ -127,21 +146,24 @@ const ServiciosPage: React.FC = () => {
     if (!validateForm()) return;
     try {
       setIsLoading(true);
+      
+      const serviceData = {
+        nombre: formData.nombre,
+        precio: formData.precio,
+        estado: formData.estado,
+        porcentaje_pago_empleado: formData.porcentaje_pago_empleado,
+      };
+
+      // Si es admin y seleccionó una entidad, incluirla
+      if (user?.role?.nombre === 'admin' && formData.entidad_id) {
+        (serviceData as any).entidad_id = formData.entidad_id;
+      }
+
       if (editingServicio) {
-        await servicioService.updateService(editingServicio.id, {
-          nombre: formData.nombre,
-          precio: formData.precio,
-          estado: formData.estado,
-          porcentaje_pago_empleado: formData.porcentaje_pago_empleado,
-        });
+        await servicioService.updateService(editingServicio.id, serviceData);
         toast.success('Servicio actualizado exitosamente');
       } else {
-        await servicioService.createService({
-          nombre: formData.nombre,
-          precio: formData.precio,
-          estado: formData.estado,
-          porcentaje_pago_empleado: formData.porcentaje_pago_empleado,
-        });
+        await servicioService.createService(serviceData);
         toast.success('Servicio creado exitosamente');
       }
       await loadServicios();
@@ -233,6 +255,19 @@ const ServiciosPage: React.FC = () => {
         );
       },
     },
+    // Columna de entidad solo para administradores
+    ...(user?.role?.nombre === 'admin' ? [{
+      key: 'entidad_id' as keyof Servicio,
+      header: 'Entidad',
+      render: (value: string | number | boolean | undefined, row: Servicio) => {
+        const entidad = entidades.find(e => e.id === row.entidad_id);
+        return (
+          <span className="text-sm text-gray-600">
+            {entidad ? entidad.nombre : 'N/A'}
+          </span>
+        );
+      },
+    }] : []),
   ];
 
   const actions = [
@@ -371,6 +406,28 @@ const ServiciosPage: React.FC = () => {
                 <option value="inactivo">Inactivo</option>
               </select>
             </div>
+            {user?.role?.nombre === 'admin' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Entidad
+                </label>
+                <select
+                  value={formData.entidad_id || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    entidad_id: e.target.value ? parseInt(e.target.value) : undefined 
+                  }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-black"
+                >
+                  <option value="">Seleccionar entidad (opcional)</option>
+                  {entidades.map((entidad) => (
+                    <option key={entidad.id} value={entidad.id}>
+                      {entidad.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <Button

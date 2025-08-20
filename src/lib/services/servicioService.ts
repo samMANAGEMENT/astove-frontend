@@ -6,6 +6,7 @@ export interface Servicio {
   precio: number;
   estado: boolean;
   porcentaje_pago_empleado: string;
+  entidad_id?: number;
   created_at: string;
   updated_at: string;
 }
@@ -71,6 +72,7 @@ interface CreateServicioData {
   precio: number;
   estado: boolean;
   porcentaje_pago_empleado: number;
+  entidad_id?: number;
 }
 
 interface ServicioMultiple {
