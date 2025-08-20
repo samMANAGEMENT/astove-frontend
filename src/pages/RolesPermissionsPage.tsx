@@ -85,13 +85,13 @@ const RolesPermissionsPage: React.FC = () => {
   }, [usersApi.data, rolesApi.data, permisosApi.data]);
 
   // Agrupar permisos por módulo
-  const permisosPorModulo = permisos.reduce((acc, permiso) => {
+  const permisosPorModulo = Array.isArray(permisos) ? permisos.reduce((acc, permiso) => {
     if (!acc[permiso.modulo]) {
       acc[permiso.modulo] = [];
     }
     acc[permiso.modulo].push(permiso);
     return acc;
-  }, {} as Record<string, Permiso[]>);
+  }, {} as Record<string, Permiso[]>) : {};
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);

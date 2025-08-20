@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface SidebarItem {
     id: string;
@@ -36,7 +37,7 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
-const getSidebarItems = (userRole?: string): SidebarItem[] => {
+const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) => boolean): SidebarItem[] => {
     const baseItems: SidebarItem[] = [
         {
             id: 'dashboard',
@@ -46,7 +47,7 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
         }
     ];
 
-    // Items para todos los roles
+    // Items para todos los roles (con verificación de permisos)
     const commonItems: SidebarItem[] = [
         {
             id: 'services',
@@ -74,7 +75,7 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
         },
     ];
 
-    // Items solo para admin y supervisor
+    // Items solo para admin y supervisor (con verificación de permisos)
     const adminItems: SidebarItem[] = [
         {
             id: 'gastos',
@@ -134,13 +135,70 @@ const getSidebarItems = (userRole?: string): SidebarItem[] => {
         }
     ];
 
-    // Si es admin o supervisor, mostrar todos los items
-    if (userRole === 'admin' || userRole === 'supervisor') {
+    // Filtrar items basado en permisos
+    const filterItemsByPermissions = (items: SidebarItem[]): SidebarItem[] => {
+        return items.filter(item => {
+            // Si no hay función de verificación de permisos, mostrar todo
+            if (!hasModuleAccess) return true;
+            
+            // Mapear IDs de items a módulos
+            const moduleMap: { [key: string]: string } = {
+                'dashboard': 'dashboard',
+                'services': 'servicios',
+                'productos': 'productos',
+                'ventas': 'ventas',
+                'ingresos-adicionales': 'ingresos_adicionales',
+                'gastos': 'gastos',
+                'shops': 'pagos',
+                'reportes': 'reportes',
+                'admin': 'usuarios'
+            };
+
+            const moduleName = moduleMap[item.id];
+            if (!moduleName) return true; // Si no hay mapeo, mostrar por defecto
+
+            return hasModuleAccess(moduleName);
+        }).map(item => {
+            // Filtrar también los children si existen
+            if (item.children) {
+                return {
+                    ...item,
+                    children: item.children.filter(child => {
+                        const childModuleMap: { [key: string]: string } = {
+                            'lista-services': 'servicios',
+                            'lista-operadores': 'operadores',
+                            'roles': 'usuarios',
+                            'integrations': 'usuarios',
+                            'analytics': 'reportes'
+                        };
+
+                        const childModuleName = childModuleMap[child.id];
+                        if (!childModuleName) return true;
+
+                        return !hasModuleAccess || hasModuleAccess(childModuleName);
+                    })
+                };
+            }
+            return item;
+        }).filter(item => {
+            // Remover items que no tienen children válidos
+            if (item.children && item.children.length === 0) {
+                return false;
+            }
+            return true;
+        });
+    };
+
+    // Si es admin, mostrar todos los items (admin tiene todos los permisos)
+    if (userRole === 'admin') {
         return [...baseItems, ...commonItems, ...adminItems];
     }
 
-    // Si es operador, mostrar solo items básicos
-    return [...baseItems, ...commonItems];
+    // Para otros roles, filtrar por permisos
+    const filteredCommonItems = filterItemsByPermissions(commonItems);
+    const filteredAdminItems = filterItemsByPermissions(adminItems);
+
+    return [...baseItems, ...filteredCommonItems, ...filteredAdminItems];
 };
 
 const SidebarItem: React.FC<{
@@ -222,6 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const { hasModuleAccess, isLoading } = usePermissions();
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
     const toggleItem = (id: string) => {
@@ -236,7 +295,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
         navigate(href);
     };
 
-    const sidebarItems = getSidebarItems(user?.role?.nombre);
+    const sidebarItems = getSidebarItems(user?.role?.nombre, hasModuleAccess);
 
     return (
         <div className={`
@@ -258,17 +317,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
 
             {/* Navigation */}
             <nav className="p-4 space-y-2">
-                {sidebarItems.map((item) => (
-                    <SidebarItem
-                        key={item.id}
-                        item={item}
-                        isExpanded={isExpanded}
-                        expandedItems={expandedItems}
-                        onToggle={toggleItem}
-                        onNavigate={handleNavigate}
-                        currentPath={location.pathname}
-                    />
-                ))}
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : (
+                    sidebarItems.map((item) => (
+                        <SidebarItem
+                            key={item.id}
+                            item={item}
+                            isExpanded={isExpanded}
+                            expandedItems={expandedItems}
+                            onToggle={toggleItem}
+                            onNavigate={handleNavigate}
+                            currentPath={location.pathname}
+                        />
+                    ))
+                )}
             </nav>
         </div>
     );
