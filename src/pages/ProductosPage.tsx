@@ -391,7 +391,7 @@ const ProductosPage: React.FC = () => {
     const numPrecio = typeof precio === 'string' ? parseFloat(precio) : precio;
 
     if (isNaN(numCosto) || isNaN(numPrecio)) return 0;
-    return numCosto - numPrecio;
+    return numPrecio - numCosto; // Ganancia = Precio de venta - Costo de compra
   };
 
   // Función para formatear números para inputs (con separadores de miles)
@@ -410,7 +410,7 @@ const ProductosPage: React.FC = () => {
   // Calcular el total de la venta
   const calcularTotalVenta = () => {
     if (!productoToVender) return 0;
-    return productoToVender.costo_unitario * ventaFormData.cantidad;
+    return productoToVender.precio_unitario * ventaFormData.cantidad; // Usar precio de venta, no costo
   };
 
   // Calcular el total de montos (efectivo + transferencia)
@@ -788,7 +788,7 @@ const ProductosPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-gray-600">Precio de venta:</span>
-                  <p className="font-medium text-green-600">{formatCurrency(productoToVender.costo_unitario)}</p>
+                  <p className="font-medium text-green-600">{formatCurrency(productoToVender.precio_unitario)}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Ganancia unitaria:</span>

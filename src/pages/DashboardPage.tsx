@@ -12,6 +12,8 @@ import {
   Calendar,
   CreditCard,
   PlusCircle,
+  Package,
+  ShoppingCart,
 } from 'lucide-react';
 import { Spinner, Badge, Button } from '../components/ui';
 import { useApi } from '../hooks/useApi';
@@ -19,6 +21,8 @@ import { useEffect } from 'react';
 import { pagosService, type GananciaNeta, type EstadoPagoEmpleado } from '../lib/services/pagosService';
 import ingresosAdicionalesService from '../lib/services/ingresosAdicionalesService';
 import gastosService from '../lib/services/gastosService';
+import { productosService } from '../lib/services/productosService';
+import { ventasService } from '../lib/services/ventasService';
 import PagoSemanalModal from '../components/PagoSemanalModal';
 import DailyEarningsDashboard from '../components/DailyEarningsDashboard';
 
@@ -37,6 +41,12 @@ const DashboardPage: React.FC = () => {
   const [isLoadingEstadisticas, setIsLoadingEstadisticas] = React.useState(true);
   const [totalGastosMes, setTotalGastosMes] = React.useState<number>(0);
   const [isLoadingGastos, setIsLoadingGastos] = React.useState(true);
+
+  // Estados para estadísticas de productos y ventas
+  const [estadisticasProductos, setEstadisticasProductos] = React.useState<any>(null);
+  const [isLoadingProductos, setIsLoadingProductos] = React.useState(true);
+  const [estadisticasVentas, setEstadisticasVentas] = React.useState<any>(null);
+  const [isLoadingVentas, setIsLoadingVentas] = React.useState(true);
 
   // Hook para total ganado
   const totalGanadoApi = useApi();
@@ -129,6 +139,40 @@ const DashboardPage: React.FC = () => {
     };
 
     loadTotalGastos();
+  }, []);
+
+  // Cargar estadísticas de productos
+  useEffect(() => {
+    const loadEstadisticasProductos = async () => {
+      try {
+        setIsLoadingProductos(true);
+        const data = await productosService.getEstadisticas();
+        setEstadisticasProductos(data);
+      } catch (error) {
+        console.error('Error al cargar estadísticas de productos:', error);
+      } finally {
+        setIsLoadingProductos(false);
+      }
+    };
+
+    loadEstadisticasProductos();
+  }, []);
+
+  // Cargar estadísticas de ventas
+  useEffect(() => {
+    const loadEstadisticasVentas = async () => {
+      try {
+        setIsLoadingVentas(true);
+        const data = await ventasService.obtenerEstadisticas();
+        setEstadisticasVentas(data);
+      } catch (error) {
+        console.error('Error al cargar estadísticas de ventas:', error);
+      } finally {
+        setIsLoadingVentas(false);
+      }
+    };
+
+    loadEstadisticasVentas();
   }, []);
 
   const handlePagarEmpleado = (empleado: EstadoPagoEmpleado) => {
@@ -604,18 +648,176 @@ const DashboardPage: React.FC = () => {
             <div className="text-gray-500 text-center py-6">No hay datos de ingresos adicionales disponibles.</div>
           )}
         </div>
+
+        {/* Productos y Ventas */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Productos y Ventas</h3>
+            <div className="flex items-center space-x-2">
+              <Badge variant="info">
+                {estadisticasProductos?.total_productos || 0} productos
+              </Badge>
+            </div>
+          </div>
+          
+          {isLoadingProductos || isLoadingVentas ? (
+            <div className="flex justify-center items-center py-8">
+              <Spinner size="md" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Estadísticas de Productos */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                  <Package className="w-4 h-4 mr-2" />
+                  Inventario de Productos
+                </h4>
+                
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-blue-500 p-2 rounded-lg">
+                      <Package className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">Ganancia Potencial</div>
+                      <div className="text-sm text-gray-500">Del inventario</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-blue-700">
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasProductos?.ganancia_total_potencial || 0)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm text-gray-600">Total Productos:</span>
+                    <span className="font-semibold text-gray-900">{estadisticasProductos?.total_productos || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm text-gray-600">Stock Total:</span>
+                    <span className="font-semibold text-gray-900">{estadisticasProductos?.total_stock || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm text-gray-600">Valor Inventario:</span>
+                    <span className="font-semibold text-gray-900">
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasProductos?.valor_total_inventario || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm text-gray-600">Bajo Stock:</span>
+                    <span className="font-semibold text-red-600">{estadisticasProductos?.productos_bajo_stock || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estadísticas de Ventas */}
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Ventas de Productos
+                  </h4>
+                  
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-green-500 p-2 rounded-lg">
+                        <ShoppingCart className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">Ganancia de Ventas</div>
+                        <div className="text-sm text-gray-500">Este mes</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-green-700">
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasVentas?.total_ganancia || 0)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm text-gray-600">Total Ventas:</span>
+                      <span className="font-semibold text-gray-900">{estadisticasVentas?.total_ventas || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm text-gray-600">Ventas Hoy:</span>
+                      <span className="font-semibold text-green-600">{estadisticasVentas?.ventas_hoy || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm text-gray-600">Ganancia Hoy:</span>
+                      <span className="font-semibold text-green-600">
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasVentas?.ganancia_hoy || 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm text-gray-600">Promedio/Venta:</span>
+                      <span className="font-semibold text-gray-900">
+                        {estadisticasVentas?.total_ventas > 0 
+                          ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasVentas.total_ganancia / estadisticasVentas.total_ventas)
+                          : '$0'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Métodos de pago en ventas */}
+                  {estadisticasVentas?.ventas_por_metodo && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <h5 className="text-xs font-medium text-gray-600 mb-2">Ventas por Método de Pago</h5>
+                      <div className="space-y-1">
+                        {estadisticasVentas.ventas_por_metodo.map((metodo: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center text-xs">
+                            <span className="text-gray-600 capitalize">{metodo.metodo_pago}:</span>
+                            <span className="font-semibold text-gray-900">{metodo.total} ventas</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Resumen de ganancias */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Ganancia total (inventario + ventas)</span>
+                  <span>
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(
+                      (estadisticasProductos?.ganancia_total_potencial || 0) + (estadisticasVentas?.total_ganancia || 0)
+                    )}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${(estadisticasProductos?.ganancia_total_potencial || 0) + (estadisticasVentas?.total_ganancia || 0) > 0 
+                        ? Math.min(100, (((estadisticasProductos?.ganancia_total_potencial || 0) + (estadisticasVentas?.total_ganancia || 0)) / 1000000) * 100)
+                        : 0}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Acciones Rápidas */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
           {[
             { label: 'Registrar Servicio', icon: <Activity className="w-5 h-5" />, color: 'bg-blue-500', route: '/servicios/registrar' },
             { label: 'Ingresos Adicionales', icon: <PlusCircle className="w-5 h-5" />, color: 'bg-purple-500', route: '/ingresos-adicionales' },
             { label: 'Gastos Operativos', icon: <TrendingDown className="w-5 h-5" />, color: 'bg-red-500', route: '/gastos' },
             { label: 'Ver Operadores', icon: <Users className="w-5 h-5" />, color: 'bg-green-500', route: '/operadores/lista' },
-            { label: 'Ver Reportes', icon: <PieChart className="w-5 h-5" />, color: 'bg-orange-500', route: '/reportes/analytics' }
+            { label: 'Ver Reportes', icon: <PieChart className="w-5 h-5" />, color: 'bg-orange-500', route: '/reportes/analytics' },
+            { label: 'Gestionar Productos', icon: <Package className="w-5 h-5" />, color: 'bg-indigo-500', route: '/productos' },
+            { label: 'Registrar Venta', icon: <ShoppingCart className="w-5 h-5" />, color: 'bg-teal-500', route: '/ventas' },
+            { label: 'Ver Ventas', icon: <TrendingUp className="w-5 h-5" />, color: 'bg-emerald-500', route: '/ventas/lista' }
           ].map((action, index) => (
             <button
               key={index}
