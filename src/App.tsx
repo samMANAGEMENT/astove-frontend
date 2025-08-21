@@ -5,7 +5,6 @@ import DashboardSelector from "./components/DashboardSelector";
 import UsersListPage from "./pages/UsersListPage";
 import SucursalesPage from "./pages/SucursalesPage";
 import ClientesPage from "./pages/ClientesPage";
-import ProductsPage from "./pages/ProductsPage";
 import ProductosPage from "./pages/ProductosPage";
 import VentasPage from "./pages/VentasPage";
 import DefaultLayout from "./layout/default";
@@ -57,13 +56,6 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <ClientesPage />
-            </DefaultLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/productos/lista" element={
-          <ProtectedRoute>
-            <DefaultLayout>
-              <ProductsPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />
