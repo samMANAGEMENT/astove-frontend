@@ -15,6 +15,7 @@ import {
 } from '../components/ui';
 import { productosService } from '../lib/services/productosService';
 import { ventasService } from '../lib/services/ventasService';
+import { useAuth } from '../contexts/AuthContext';
 import type { Producto, EstadisticasProductos } from '../lib/services/productosService';
 
 interface ProductoFormData {
@@ -23,9 +24,11 @@ interface ProductoFormData {
   precio_unitario: number;
   costo_unitario: number;
   stock: number;
+  entidad_id?: number;
 }
 
 const ProductosPage: React.FC = () => {
+  const { user } = useAuth();
   const [searchValue, setSearchValue] = useState('');
   const [productos, setProductos] = useState<Producto[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -216,11 +219,18 @@ const ProductosPage: React.FC = () => {
     try {
       setIsLoading(true);
 
+      // Preparar los datos del formulario
+      const productoData = { ...formData };
+
       if (editingProducto) {
-        await productosService.update(editingProducto.id, formData);
+        await productosService.update(editingProducto.id, productoData);
         toast.success('Producto actualizado exitosamente');
       } else {
-        await productosService.create(formData);
+        // Al crear un nuevo producto, incluir automáticamente la entidad del usuario
+        if (user?.operador?.entidad_id) {
+          productoData.entidad_id = user.operador.entidad_id;
+        }
+        await productosService.create(productoData);
         toast.success('Producto creado exitosamente');
       }
 

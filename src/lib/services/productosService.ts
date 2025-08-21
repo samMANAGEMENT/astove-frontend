@@ -10,6 +10,7 @@ export interface Producto {
   ganancia: number;
   ganancia_total: number;
   stock_status: 'success' | 'warning' | 'danger';
+  entidad_id?: number;
   created_at: string;
   updated_at: string;
   categoria?: {
@@ -25,6 +26,7 @@ export interface CreateProductoData {
   precio_unitario: number;
   costo_unitario: number;
   stock: number;
+  entidad_id?: number;
 }
 
 export interface UpdateProductoData extends Partial<CreateProductoData> {}
