@@ -14,6 +14,7 @@
     "@fullcalendar/interaction": "^6.1.18",
     "@fullcalendar/list": "^6.1.18",
     "@fullcalendar/react": "^6.1.18",
+    "@fullcalendar/resource-timeline": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.18",
     "@tailwindcss/vite": "^4.1.9",
     "@types/react-datepicker": "^6.2.0",
