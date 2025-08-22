@@ -18,7 +18,8 @@ import {
     Package,
     PlusCircle,
     ShoppingBag,
-    TrendingDown
+    TrendingDown,
+    Crown
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +31,8 @@ interface SidebarItem {
     icon: React.ReactNode;
     href?: string;
     children?: SidebarItem[];
+    isPremium?: boolean;
+    premiumLabel?: string;
 }
 
 interface SidebarProps {
@@ -66,6 +69,14 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
             label: 'Ventas',
             icon: <ShoppingBag className="w-5 h-5" />,
             href: '/ventas'
+        },
+        {
+            id: 'inventario',
+            label: 'Inventario',
+            icon: <Package className="w-5 h-5" />,
+            href: '/inventario/lista',
+            isPremium: true,
+            premiumLabel: 'NEW'
         },
         {
             id: 'ingresos-adicionales',
@@ -126,6 +137,12 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
                     href: '/roles-permisos'
                 },
                 {
+                    id: 'modulos-premium',
+                    label: 'Módulos Premium',
+                    icon: <Crown className="w-4 h-4" />,
+                    href: '/modulos-entidades'
+                },
+                {
                     id: 'integrations',
                     label: 'Integraciones',
                     icon: <Workflow className="w-4 h-4" />,
@@ -147,11 +164,13 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
                 'services': 'servicios',
                 'productos': 'productos',
                 'ventas': 'ventas',
+                'inventario': 'inventario',
                 'ingresos-adicionales': 'ingresos_adicionales',
                 'gastos': 'gastos',
                 'shops': 'pagos',
                 'reportes': 'reportes',
-                'admin': 'usuarios'
+                'admin': 'usuarios',
+                'modulos-premium': 'modulos_entidades'
             };
 
             const moduleName = moduleMap[item.id];
@@ -168,6 +187,7 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
                             'lista-services': 'servicios',
                             'lista-operadores': 'operadores',
                             'roles': 'usuarios',
+                            'modulos-premium': 'modulos_entidades',
                             'integrations': 'usuarios',
                             'analytics': 'reportes'
                         };
@@ -239,7 +259,14 @@ const SidebarItem: React.FC<{
                 <div className="flex items-center space-x-3">
                     <span className={isActive ? 'text-blue-600' : 'text-gray-600'}>{item.icon}</span>
                     {isExpanded && (
-                        <span className="font-medium text-sm">{item.label}</span>
+                        <div className="flex items-center space-x-2">
+                            <span className="font-medium text-sm">{item.label}</span>
+                            {item.isPremium && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
+                                    {item.premiumLabel || 'NEW'}
+                                </span>
+                            )}
+                        </div>
                     )}
                 </div>
                 {hasChildren && isExpanded && (
@@ -266,7 +293,14 @@ const SidebarItem: React.FC<{
                                 onClick={() => child.href && onNavigate(child.href)}
                             >
                                 <span className={isChildActive ? 'text-blue-600' : 'text-gray-500'}>{child.icon}</span>
-                                <span className="font-medium text-sm">{child.label}</span>
+                                <div className="flex items-center space-x-2">
+                                    <span className="font-medium text-sm">{child.label}</span>
+                                    {child.isPremium && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
+                                            {child.premiumLabel || 'NEW'}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}

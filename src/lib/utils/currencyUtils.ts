@@ -22,12 +22,15 @@ export const formatCurrency = (
     showSymbol = true
   } = options;
 
+  // Asegurar que amount sea un número válido
+  const numericAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+
   return new Intl.NumberFormat('es-CO', {
     style: showSymbol ? 'currency' : 'decimal',
     currency: 'COP',
     minimumFractionDigits,
     maximumFractionDigits,
-  }).format(amount);
+  }).format(numericAmount);
 };
 
 /**

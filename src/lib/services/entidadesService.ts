@@ -12,7 +12,7 @@ export interface Entidad {
 class EntidadesService {
   async getEntidades(): Promise<Entidad[]> {
     const response = await axios.get('/entidad/listar-entidades');
-    return response.data || [];
+    return response.data.entidades || [];
   }
 }
 

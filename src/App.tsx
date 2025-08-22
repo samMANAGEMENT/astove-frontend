@@ -22,6 +22,7 @@ import RolesPermissionsPage from "./pages/RolesPermissionsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import IngresosAdicionalesPage from "./pages/IngresosAdicionalesPage";
 import GastosPage from "./pages/GastosPage";
+import InventarioPage from "./pages/InventarioPage";
 
 
 function AppContent() {
@@ -136,7 +137,13 @@ function AppContent() {
             </DefaultLayout>
           </ProtectedRoute>
         } />
-
+        <Route path="/inventario/lista" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <InventarioPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/error" element={<ErrorPage />} />
         <Route path="*" element={<Navigate to="/error" />} />
       </Routes>
