@@ -19,7 +19,8 @@ import {
     PlusCircle,
     ShoppingBag,
     TrendingDown,
-    Crown
+    Crown,
+    Calendar
 } from 'lucide-react';
 import logo from '../assets/suitpress-logo.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -83,6 +84,14 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
             label: 'Ingresos Adicionales',
             icon: <PlusCircle className="w-5 h-5" />,
             href: '/ingresos-adicionales'
+        },
+        {
+            id: 'agendas',
+            label: 'Agendas',
+            icon: <Calendar className="w-5 h-5" />,
+            href: '/agendas',
+            isPremium: true,
+            premiumLabel: 'NEW'
         },
     ];
 
@@ -166,6 +175,7 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
                 'ventas': 'ventas',
                 'inventario': 'inventario',
                 'ingresos-adicionales': 'ingresos_adicionales',
+                'agendas': 'agendas',
                 'gastos': 'gastos',
                 'shops': 'pagos',
                 'reportes': 'reportes',

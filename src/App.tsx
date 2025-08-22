@@ -23,6 +23,8 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import IngresosAdicionalesPage from "./pages/IngresosAdicionalesPage";
 import GastosPage from "./pages/GastosPage";
 import InventarioPage from "./pages/InventarioPage";
+import AgendasPage from "./pages/AgendasPage";
+import AgendaCalendarPage from "./pages/AgendaCalendarPage";
 
 
 function AppContent() {
@@ -141,6 +143,20 @@ function AppContent() {
           <ProtectedRoute>
             <DefaultLayout>
               <InventarioPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/agendas" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <AgendasPage />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/agendas/:id/calendario" element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <AgendaCalendarPage />
             </DefaultLayout>
           </ProtectedRoute>
         } />
