@@ -13,6 +13,14 @@ export interface Inventario {
   creado_por: number;
   created_at: string;
   updated_at: string;
+  tamanio_paquete?: number;
+  tiene_paquetes?: boolean;
+  informacion_paquetes?: {
+    tamanio_paquete: number;
+    numero_paquetes: number;
+    cantidad_suelta: number;
+    costo_por_paquete: number;
+  } | null;
   entidad?: {
     id: number;
     nombre: string;
@@ -29,6 +37,7 @@ export interface CreateInventarioData {
   costo_unitario: number;
   estado?: 'activo' | 'inactivo' | 'agotado';
   entidad_id?: number;
+  tamanio_paquete?: number;
 }
 
 export interface UpdateInventarioData extends Partial<CreateInventarioData> {}
@@ -79,6 +88,20 @@ export interface MovimientosResponse {
     from: number;
     to: number;
   };
+}
+
+export interface InformacionPaquetes {
+  tiene_paquetes: boolean;
+  tamanio_paquete: number | null;
+  numero_paquetes_disponibles: number;
+  cantidad_suelta: number;
+  costo_por_paquete: number;
+  informacion_paquetes: {
+    tamanio_paquete: number;
+    numero_paquetes: number;
+    cantidad_suelta: number;
+    costo_por_paquete: number;
+  } | null;
 }
 
 const getAll = async (params?: {
@@ -135,6 +158,23 @@ const getMovimientos = async (
   return response.data;
 };
 
+const actualizarStockPorPaquetes = async (
+  id: number, 
+  numeroPaquetes: number, 
+  tipo: 'agregar' | 'reducir'
+): Promise<Inventario> => {
+  const response = await api.put(`/inventario/actualizar-stock-paquetes/${id}`, { 
+    numero_paquetes: numeroPaquetes, 
+    tipo 
+  });
+  return response.data.data;
+};
+
+const obtenerInformacionPaquetes = async (id: number): Promise<InformacionPaquetes> => {
+  const response = await api.get(`/inventario/informacion-paquetes/${id}`);
+  return response.data;
+};
+
 export const inventarioService = {
   getAll,
   getById,
@@ -144,5 +184,7 @@ export const inventarioService = {
   getEstadisticas,
   actualizarStock,
   cambiarEstado,
-  getMovimientos
+  getMovimientos,
+  actualizarStockPorPaquetes,
+  obtenerInformacionPaquetes
 };
