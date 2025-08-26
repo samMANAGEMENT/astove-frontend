@@ -23,10 +23,16 @@ interface InventarioFormData {
   costo_unitario: number;
   estado: 'activo' | 'inactivo' | 'agotado';
   entidad_id?: number;
+  tamanio_paquete?: number;
 }
 
 interface StockFormData {
   cantidad: number;
+  tipo: 'agregar' | 'reducir';
+}
+
+interface PaquetesFormData {
+  numeroPaquetes: number;
   tipo: 'agregar' | 'reducir';
 }
 
@@ -36,16 +42,19 @@ const InventarioPage: React.FC = () => {
   const [inventario, setInventario] = useState<Inventario[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [isPaquetesModalOpen, setIsPaquetesModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStock, setIsUpdatingStock] = useState(false);
+  const [isUpdatingPaquetes, setIsUpdatingPaquetes] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [editingInventario, setEditingInventario] = useState<Inventario | null>(null);
   const [inventarioToDelete, setInventarioToDelete] = useState<Inventario | null>(null);
   const [inventarioToStock, setInventarioToStock] = useState<Inventario | null>(null);
+  const [inventarioToPaquetes, setInventarioToPaquetes] = useState<Inventario | null>(null);
   const [estadisticas, setEstadisticas] = useState<EstadisticasInventario | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,11 +74,17 @@ const InventarioPage: React.FC = () => {
     nombre: '',
     cantidad: 0,
     costo_unitario: 0,
-    estado: 'activo'
+    estado: 'activo',
+    tamanio_paquete: undefined
   });
 
   const [stockFormData, setStockFormData] = useState<StockFormData>({
     cantidad: 1,
+    tipo: 'agregar'
+  });
+
+  const [paquetesFormData, setPaquetesFormData] = useState<PaquetesFormData>({
+    numeroPaquetes: 1,
     tipo: 'agregar'
   });
 
@@ -78,10 +93,15 @@ const InventarioPage: React.FC = () => {
     cantidad?: string;
     costo_unitario?: string;
     estado?: string;
+    tamanio_paquete?: string;
   }>({});
 
   const [stockFormErrors, setStockFormErrors] = useState<{
     cantidad?: string;
+  }>({});
+
+  const [paquetesFormErrors, setPaquetesFormErrors] = useState<{
+    numeroPaquetes?: string;
   }>({});
 
   // Cargar inventario al montar el componente
@@ -165,7 +185,8 @@ const InventarioPage: React.FC = () => {
       nombre: '',
       cantidad: 0,
       costo_unitario: 0,
-      estado: 'activo'
+      estado: 'activo',
+      tamanio_paquete: undefined
     });
     setFormErrors({});
   };
@@ -176,6 +197,14 @@ const InventarioPage: React.FC = () => {
       tipo: 'agregar'
     });
     setStockFormErrors({});
+  };
+
+  const resetPaquetesForm = () => {
+    setPaquetesFormData({
+      numeroPaquetes: 1,
+      tipo: 'agregar'
+    });
+    setPaquetesFormErrors({});
   };
 
   const openCreateModal = () => {
@@ -190,7 +219,8 @@ const InventarioPage: React.FC = () => {
       nombre: item.nombre,
       cantidad: item.cantidad,
       costo_unitario: item.costo_unitario,
-      estado: item.estado
+      estado: item.estado,
+      tamanio_paquete: item.tamanio_paquete
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -214,6 +244,12 @@ const InventarioPage: React.FC = () => {
     resetStockForm();
   };
 
+  const closePaquetesModal = () => {
+    setIsPaquetesModalOpen(false);
+    setInventarioToPaquetes(null);
+    resetPaquetesForm();
+  };
+
   const validateForm = (): boolean => {
     const errors: any = {};
 
@@ -227,6 +263,10 @@ const InventarioPage: React.FC = () => {
 
     if (formData.costo_unitario < 0) {
       errors.costo_unitario = 'El costo unitario no puede ser negativo';
+    }
+
+    if (formData.tamanio_paquete !== undefined && formData.tamanio_paquete <= 0) {
+      errors.tamanio_paquete = 'El tamaño del paquete debe ser mayor a 0';
     }
 
     setFormErrors(errors);
@@ -245,6 +285,24 @@ const InventarioPage: React.FC = () => {
     }
 
     setStockFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validatePaquetesForm = (): boolean => {
+    const errors: any = {};
+
+    if (paquetesFormData.numeroPaquetes <= 0) {
+      errors.numeroPaquetes = 'El número de paquetes debe ser mayor a 0';
+    }
+
+    if (paquetesFormData.tipo === 'reducir' && inventarioToPaquetes) {
+      // En la nueva lógica, cantidad = número de paquetes
+      if (paquetesFormData.numeroPaquetes > inventarioToPaquetes.cantidad) {
+        errors.numeroPaquetes = `No hay suficientes paquetes. Disponible: ${inventarioToPaquetes.cantidad} paquetes`;
+      }
+    }
+
+    setPaquetesFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
@@ -315,6 +373,35 @@ const InventarioPage: React.FC = () => {
       toast.error('Error al actualizar el stock');
     } finally {
       setIsUpdatingStock(false);
+    }
+  };
+
+  const handlePaquetesSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validatePaquetesForm() || !inventarioToPaquetes) return;
+
+    try {
+      setIsUpdatingPaquetes(true);
+
+      await inventarioService.actualizarStockPorPaquetes(
+        inventarioToPaquetes.id,
+        paquetesFormData.numeroPaquetes,
+        paquetesFormData.tipo
+      );
+
+      toast.success(`Paquetes ${paquetesFormData.tipo === 'agregar' ? 'agregados' : 'reducidos'} exitosamente`);
+      
+      // Recargar inventario y estadísticas
+      await loadInventario();
+      await loadEstadisticas();
+
+      closePaquetesModal();
+    } catch (error) {
+      console.error('Error al actualizar paquetes:', error);
+      toast.error('Error al actualizar los paquetes');
+    } finally {
+      setIsUpdatingPaquetes(false);
     }
   };
 
@@ -475,10 +562,17 @@ const InventarioPage: React.FC = () => {
     {
       key: 'cantidad' as keyof Inventario,
       header: 'Cantidad',
-      render: (value: any, _row: Inventario) => (
-        <div className="flex items-center space-x-2">
-          <span className="font-semibold">{value}</span>
-          {getStockBadge(value)}
+      render: (value: any, row: Inventario) => (
+        <div className="flex flex-col space-y-1">
+          <div className="flex items-center space-x-2">
+            <span className="font-semibold">{value}</span>
+            {getStockBadge(value)}
+          </div>
+                     {row.tiene_paquetes && row.tamanio_paquete && (
+             <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+               {value} paq. de {row.tamanio_paquete} unidades
+             </div>
+           )}
         </div>
       )
     },
@@ -486,6 +580,19 @@ const InventarioPage: React.FC = () => {
       key: 'costo_unitario' as keyof Inventario,
       header: 'Costo Unitario',
       render: (value: any) => <span className="text-gray-700">{formatCurrency(value)}</span>
+    },
+    {
+      key: 'tamanio_paquete' as keyof Inventario,
+      header: 'Paquete',
+      render: (value: any, row: Inventario) => (
+        <div>
+          {row.tiene_paquetes && row.tamanio_paquete ? (
+            <Badge variant="info">{row.tamanio_paquete} uds.</Badge>
+          ) : (
+            <span className="text-gray-400 text-sm">Unitario</span>
+          )}
+        </div>
+      )
     },
     {
       key: 'valor_total' as keyof Inventario,
@@ -565,9 +672,17 @@ const InventarioPage: React.FC = () => {
     {
       icon: PlusIcon,
       onClick: (row: Inventario) => {
-        setInventarioToStock(row);
-        setStockFormData({ cantidad: 1, tipo: 'agregar' });
-        setIsStockModalOpen(true);
+        if (row.tiene_paquetes) {
+          // Si tiene paquetes, abrir modal de paquetes
+          setInventarioToPaquetes(row);
+          setPaquetesFormData({ numeroPaquetes: 1, tipo: 'agregar' });
+          setIsPaquetesModalOpen(true);
+        } else {
+          // Si no tiene paquetes, abrir modal de unidades
+          setInventarioToStock(row);
+          setStockFormData({ cantidad: 1, tipo: 'agregar' });
+          setIsStockModalOpen(true);
+        }
       },
       variant: 'success' as const,
       tooltip: 'Agregar Stock'
@@ -575,9 +690,17 @@ const InventarioPage: React.FC = () => {
     {
       icon: Minus,
       onClick: (row: Inventario) => {
-        setInventarioToStock(row);
-        setStockFormData({ cantidad: 1, tipo: 'reducir' });
-        setIsStockModalOpen(true);
+        if (row.tiene_paquetes) {
+          // Si tiene paquetes, abrir modal de paquetes
+          setInventarioToPaquetes(row);
+          setPaquetesFormData({ numeroPaquetes: 1, tipo: 'reducir' });
+          setIsPaquetesModalOpen(true);
+        } else {
+          // Si no tiene paquetes, abrir modal de unidades
+          setInventarioToStock(row);
+          setStockFormData({ cantidad: 1, tipo: 'reducir' });
+          setIsStockModalOpen(true);
+        }
       },
       variant: 'warning' as const,
       tooltip: 'Reducir Stock'
@@ -789,6 +912,28 @@ const InventarioPage: React.FC = () => {
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tamaño de Paquete (opcional)
+            </label>
+            <Input
+              type="number"
+              value={formData.tamanio_paquete?.toString() || ''}
+              onChange={(e) => setFormData({ 
+                ...formData, 
+                tamanio_paquete: e.target.value ? parseInt(e.target.value) : undefined 
+              })}
+              placeholder="Ej: 100 para paquetes de 100 unidades"
+              min="1"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Deja vacío si el artículo no se vende por paquetes
+            </p>
+            {formErrors.tamanio_paquete && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.tamanio_paquete}</p>
+            )}
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={closeModal} disabled={isCreating || isUpdating}>
               Cancelar
@@ -809,12 +954,17 @@ const InventarioPage: React.FC = () => {
         title={`${stockFormData.tipo === 'agregar' ? 'Agregar' : 'Reducir'} Stock`}
         size="sm"
       >
-        {inventarioToStock && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">Artículo: <span className="font-medium">{inventarioToStock.nombre}</span></p>
-            <p className="text-sm text-gray-600">Stock actual: <span className="font-medium">{inventarioToStock.cantidad}</span></p>
-          </div>
-        )}
+                 {inventarioToStock && (
+           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+             <p className="text-sm text-gray-600">Artículo: <span className="font-medium">{inventarioToStock.nombre}</span></p>
+             <p className="text-sm text-gray-600">Stock actual: <span className="font-medium">{inventarioToStock.cantidad}</span></p>
+                           {inventarioToStock.tiene_paquetes && inventarioToStock.tamanio_paquete && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Paquetes: {inventarioToStock.cantidad} paquetes de {inventarioToStock.tamanio_paquete} unidades cada uno
+                </p>
+              )}
+           </div>
+         )}
 
         <form onSubmit={handleStockSubmit} className="space-y-4">
           <div>
@@ -840,6 +990,54 @@ const InventarioPage: React.FC = () => {
             </Button>
             <Button type="submit" disabled={isUpdatingStock}>
               {isUpdatingStock ? <Spinner size="sm" /> : 'Confirmar'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal para gestionar paquetes */}
+      <Modal
+        isOpen={isPaquetesModalOpen}
+        onClose={closePaquetesModal}
+        title={`${paquetesFormData.tipo === 'agregar' ? 'Agregar' : 'Reducir'} Paquetes`}
+        size="sm"
+      >
+                 {inventarioToPaquetes && (
+           <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+             <p className="text-sm text-gray-600">Artículo: <span className="font-medium">{inventarioToPaquetes.nombre}</span></p>
+             <p className="text-sm text-gray-600">Stock actual: <span className="font-medium">{inventarioToPaquetes.cantidad}</span></p>
+             {inventarioToPaquetes.tamanio_paquete && (
+               <p className="text-sm text-blue-600 mt-1">
+                 Tamaño de paquete: <span className="font-medium">{inventarioToPaquetes.tamanio_paquete}</span> unidades
+               </p>
+             )}
+           </div>
+         )}
+
+        <form onSubmit={handlePaquetesSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Número de Paquetes *
+            </label>
+            <Input
+              type="number"
+              value={paquetesFormData.numeroPaquetes.toString()}
+              onChange={(e) => setPaquetesFormData({ ...paquetesFormData, numeroPaquetes: parseInt(e.target.value) || 1 })}
+              placeholder="1"
+              min="1"
+              max={paquetesFormData.tipo === 'reducir' && inventarioToPaquetes ? inventarioToPaquetes.cantidad.toString() : undefined}
+            />
+            {paquetesFormErrors.numeroPaquetes && (
+              <p className="text-red-500 text-sm mt-1">{paquetesFormErrors.numeroPaquetes}</p>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button type="button" variant="outline" onClick={closePaquetesModal} disabled={isUpdatingPaquetes}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isUpdatingPaquetes}>
+              {isUpdatingPaquetes ? <Spinner size="sm" /> : 'Confirmar'}
             </Button>
           </div>
         </form>
