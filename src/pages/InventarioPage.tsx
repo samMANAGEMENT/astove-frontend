@@ -584,7 +584,7 @@ const InventarioPage: React.FC = () => {
     {
       key: 'tamanio_paquete' as keyof Inventario,
       header: 'Paquete',
-      render: (value: any, row: Inventario) => (
+      render: (_value: any, row: Inventario) => (
         <div>
           {row.tiene_paquetes && row.tamanio_paquete ? (
             <Badge variant="info">{row.tamanio_paquete} uds.</Badge>
