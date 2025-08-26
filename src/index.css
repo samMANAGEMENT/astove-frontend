@@ -121,3 +121,285 @@ body {
 .react-datepicker__navigation:hover *::before {
   border-color: #374151;
 }
+
+/* Estilos para calendarios de agendas */
+.agenda-calendar {
+  font-family: 'DM Sans', sans-serif;
+}
+
+.agenda-calendar .calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: #e5e7eb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.agenda-calendar .calendar-header {
+  background-color: #f8fafc;
+  color: #374151;
+  font-weight: 600;
+  padding: 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.agenda-calendar .calendar-day {
+  background-color: white;
+  min-height: 120px;
+  padding: 0.5rem;
+  border-right: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.agenda-calendar .calendar-day:last-child {
+  border-right: none;
+}
+
+.agenda-calendar .calendar-day.today {
+  background-color: #eff6ff;
+  border: 2px solid #3b82f6;
+}
+
+.agenda-calendar .calendar-day.past {
+  background-color: #f9fafb;
+  color: #9ca3af;
+}
+
+.agenda-calendar .calendar-day.other-month {
+  background-color: #f9fafb;
+  color: #d1d5db;
+}
+
+.agenda-calendar .day-number {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.agenda-calendar .day-number.today {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.agenda-calendar .day-number.past {
+  color: #9ca3af;
+}
+
+.agenda-calendar .day-number.other-month {
+  color: #d1d5db;
+}
+
+.agenda-calendar .time-slot {
+  margin-bottom: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid;
+}
+
+.agenda-calendar .time-slot.available {
+  background-color: #f0fdf4;
+  color: #166534;
+  border-left-color: #22c55e;
+}
+
+.agenda-calendar .time-slot.available:hover {
+  background-color: #dcfce7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.agenda-calendar .time-slot.occupied {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-left-color: #ef4444;
+  cursor: not-allowed;
+}
+
+.agenda-calendar .time-slot.no-schedule {
+  background-color: #f9fafb;
+  color: #6b7280;
+  border-left-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.agenda-calendar .time-slot-title {
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.agenda-calendar .time-slot-time {
+  font-size: 0.625rem;
+  opacity: 0.8;
+}
+
+.agenda-calendar .time-slot-client {
+  font-size: 0.625rem;
+  font-weight: 500;
+  margin-top: 0.125rem;
+}
+
+/* Estilos para el modal de citas */
+.cita-modal {
+  font-family: 'DM Sans', sans-serif;
+}
+
+.cita-modal .form-group {
+  margin-bottom: 1rem;
+}
+
+.cita-modal .form-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.cita-modal .form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+.cita-modal .form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cita-modal .form-input:disabled {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.cita-modal .form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.cita-modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* Estilos para badges de estado */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge.confirmada {
+  background-color: #f0fdf4;
+  color: #166534;
+}
+
+.status-badge.pendiente {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.cancelada {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+.status-badge.completada {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+/* Estilos para la navegación del calendario */
+.calendar-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.calendar-navigation .nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.calendar-navigation .nav-button:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.calendar-navigation .nav-button:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.calendar-navigation .current-month {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Estilos para la información de la agenda */
+.agenda-info {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.agenda-info .agenda-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 0.5rem;
+}
+
+.agenda-info .agenda-operator {
+  color: #374151;
+  font-weight: 500;
+}
+
+.agenda-info .agenda-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}

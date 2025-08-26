@@ -53,6 +53,38 @@ export interface CrearHorarioData {
   activo?: boolean;
 }
 
+export interface Cita {
+  id: number;
+  agenda_id: number;
+  horario_id: number;
+  cliente_nombre: string;
+  cliente_telefono?: string;
+  cliente_email?: string;
+  servicio: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  estado: 'confirmada' | 'pendiente' | 'cancelada' | 'completada';
+  notas?: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrearCitaData {
+  agenda_id: number;
+  horario_id: number;
+  cliente_nombre: string;
+  cliente_telefono?: string;
+  cliente_email?: string;
+  servicio: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  estado?: 'confirmada' | 'pendiente' | 'cancelada' | 'completada';
+  notas?: string;
+}
+
 class AgendaService {
   async getAll(): Promise<Agenda[]> {
     const response = await apiClient.get('/agenda/listar-agendas');
@@ -96,6 +128,42 @@ class AgendaService {
 
   async getHorariosByAgenda(agendaId: number): Promise<Horario[]> {
     const response = await apiClient.get(`/agenda/horarios-agenda/${agendaId}`);
+    return response.data;
+  }
+
+  async consultarEspaciosDisponibles(agendaId: number, fecha?: string): Promise<any> {
+    const params = fecha ? `?fecha=${fecha}` : '';
+    const response = await apiClient.get(`/agenda/consultar-espacios/${agendaId}${params}`);
+    return response.data;
+  }
+
+  async obtenerCalendarioAgenda(agendaId: number, mes?: number, anio?: number): Promise<any> {
+    const params = new URLSearchParams();
+    if (mes) params.append('mes', mes.toString());
+    if (anio) params.append('anio', anio.toString());
+    
+    const response = await apiClient.get(`/agenda/calendario/${agendaId}?${params.toString()}`);
+    return response.data;
+  }
+
+  async crearCita(data: CrearCitaData): Promise<Cita> {
+    const response = await apiClient.post('/agenda/crear-cita', data);
+    return response.data;
+  }
+
+  async actualizarCita(id: number, data: Partial<CrearCitaData>): Promise<Cita> {
+    const response = await apiClient.put(`/agenda/actualizar-cita/${id}`, data);
+    return response.data;
+  }
+
+  async eliminarCita(id: number): Promise<{ message: string }> {
+    const response = await apiClient.delete(`/agenda/eliminar-cita/${id}`);
+    return response.data;
+  }
+
+  async obtenerDisponibilidadTiempoReal(fecha?: string): Promise<any> {
+    const params = fecha ? `?fecha=${fecha}` : '';
+    const response = await apiClient.get(`/agenda/disponibilidad-tiempo-real${params}`);
     return response.data;
   }
 }

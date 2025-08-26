@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Plus, Edit, Trash2, Clock, User } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Clock, User, Search, CalendarDays } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   Card,
@@ -42,10 +42,37 @@ const AgendasPage: React.FC = () => {
     nombre?: string;
   }>({});
 
+  // Estados para consulta de espacios
+  const [showEspaciosModal, setShowEspaciosModal] = useState(false);
+  const [agendaParaConsultar, setAgendaParaConsultar] = useState<Agenda | null>(null);
+  const [fechaConsulta, setFechaConsulta] = useState(new Date().toISOString().split('T')[0]);
+  const [espaciosDisponibles, setEspaciosDisponibles] = useState<any>(null);
+  const [isLoadingEspacios, setIsLoadingEspacios] = useState(false);
+
+  // Estados para disponibilidad en tiempo real
+  const [disponibilidadTiempoReal, setDisponibilidadTiempoReal] = useState<any>(null);
+  const [isLoadingDisponibilidad, setIsLoadingDisponibilidad] = useState(false);
+  const [fechaDisponibilidad, setFechaDisponibilidad] = useState(new Date().toISOString().split('T')[0]);
+
   useEffect(() => {
     loadAgendas();
     loadOperadores();
+    cargarDisponibilidadTiempoReal();
   }, []);
+
+  // Cargar disponibilidad en tiempo real
+  const cargarDisponibilidadTiempoReal = async () => {
+    setIsLoadingDisponibilidad(true);
+    try {
+      const data = await agendaService.obtenerDisponibilidadTiempoReal(fechaDisponibilidad);
+      setDisponibilidadTiempoReal(data);
+    } catch (error: any) {
+      console.error('Error al cargar disponibilidad:', error);
+      toast.error(error.response?.data?.error || 'Error al cargar disponibilidad');
+    } finally {
+      setIsLoadingDisponibilidad(false);
+    }
+  };
 
   const loadOperadores = async () => {
     try {
@@ -143,6 +170,45 @@ const AgendasPage: React.FC = () => {
     }
   };
 
+  const handleConsultarEspacios = (agenda: Agenda) => {
+    setAgendaParaConsultar(agenda);
+    setFechaConsulta(new Date().toISOString().split('T')[0]);
+    setEspaciosDisponibles(null);
+    setShowEspaciosModal(true);
+  };
+
+  const consultarEspacios = async () => {
+    if (!agendaParaConsultar) return;
+
+    setIsLoadingEspacios(true);
+    try {
+      const data = await agendaService.consultarEspaciosDisponibles(agendaParaConsultar.id, fechaConsulta);
+      setEspaciosDisponibles(data);
+    } catch (error: any) {
+      console.error('Error al consultar espacios:', error);
+      toast.error(error.response?.data?.error || 'Error al consultar espacios disponibles');
+    } finally {
+      setIsLoadingEspacios(false);
+    }
+  };
+
+  const formatTime = (time: string) => {
+    return new Date(`2000-01-01T${time}`).toLocaleTimeString('es-CO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-CO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   const filteredAgendas = agendas.filter(agenda =>
     agenda.nombre.toLowerCase().includes(searchValue.toLowerCase()) ||
     agenda.operador?.nombre.toLowerCase().includes(searchValue.toLowerCase()) ||
@@ -205,6 +271,14 @@ const AgendasPage: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => handleConsultarEspacios(agenda)}
+            className="text-green-600 hover:text-green-700"
+          >
+            <Search className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => handleEdit(agenda)}
             className="text-yellow-600 hover:text-yellow-700"
           >
@@ -229,6 +303,156 @@ const AgendasPage: React.FC = () => {
         title="Gestión de Agendas"
         subtitle="Administra las agendas de los operadores"
       />
+
+      {/* Sección de disponibilidad en tiempo real */}
+      <Card>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Disponibilidad en Tiempo Real
+            </h3>
+            <p className="text-sm text-gray-600">
+              Consulta los espacios disponibles para agendar citas
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Input
+              type="date"
+              value={fechaDisponibilidad}
+              onChange={(e) => {
+                setFechaDisponibilidad(e.target.value);
+                cargarDisponibilidadTiempoReal();
+              }}
+              className="w-auto"
+            />
+            <Button
+              onClick={cargarDisponibilidadTiempoReal}
+              disabled={isLoadingDisponibilidad}
+              variant="outline"
+              size="sm"
+            >
+              {isLoadingDisponibilidad ? (
+                <Spinner size="sm" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+              Actualizar
+            </Button>
+          </div>
+        </div>
+
+        {isLoadingDisponibilidad ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : disponibilidadTiempoReal ? (
+          <div className="space-y-6">
+            {/* Resumen general */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {disponibilidadTiempoReal.total_agendas}
+                </div>
+                <div className="text-sm text-blue-700">Agendas Activas</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {disponibilidadTiempoReal.total_espacios_libres}
+                </div>
+                <div className="text-sm text-green-700">Espacios Libres</div>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {disponibilidadTiempoReal.total_espacios_ocupados}
+                </div>
+                <div className="text-sm text-red-700">Espacios Ocupados</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-gray-600">
+                  {formatDate(disponibilidadTiempoReal.fecha_consultada)}
+                </div>
+                <div className="text-sm text-gray-700">Fecha Consultada</div>
+              </div>
+            </div>
+
+            {/* Lista de agendas con disponibilidad */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900">Disponibilidad por Operador</h4>
+              {disponibilidadTiempoReal.disponibilidad.map((agenda: any) => (
+                <div key={agenda.agenda_id} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h5 className="font-medium text-gray-900">
+                        {agenda.operador.nombre} {agenda.operador.apellido}
+                      </h5>
+                      <p className="text-sm text-gray-600">{agenda.agenda_nombre}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-green-600">
+                          {agenda.horarios_libres} libres
+                        </span>
+                        <span className="text-red-600">
+                          {agenda.horarios_ocupados} ocupados
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {agenda.horarios_disponibles.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {agenda.horarios_disponibles.map((horario: any) => (
+                        <div
+                          key={horario.id}
+                          className={`p-3 rounded-lg border-l-4 ${
+                            horario.disponible
+                              ? 'bg-green-50 border-green-400 hover:bg-green-100 cursor-pointer'
+                              : 'bg-red-50 border-red-400'
+                          }`}
+                          onClick={() => {
+                            if (horario.disponible) {
+                              // Navegar al calendario para agendar
+                              navigate(`/agendas/${agenda.agenda_id}/calendario?fecha=${fechaDisponibilidad}&horario=${horario.id}`);
+                            }
+                          }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h6 className="font-medium text-gray-900 text-sm">
+                                {horario.titulo}
+                              </h6>
+                              <p className="text-xs text-gray-600">
+                                {formatTime(horario.hora_inicio)} - {formatTime(horario.hora_fin)}
+                              </p>
+                            </div>
+                            <Badge variant={horario.disponible ? 'success' : 'outline'}>
+                              {horario.disponible ? 'Disponible' : 'Ocupado'}
+                            </Badge>
+                          </div>
+                          {!horario.disponible && horario.cita_existente && (
+                            <div className="mt-2 text-xs text-gray-600">
+                              <p>Cliente: {horario.cita_existente.cliente_nombre}</p>
+                              <p>Servicio: {horario.cita_existente.servicio}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <p>No hay horarios programados para este día</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>No hay datos de disponibilidad disponibles</p>
+          </div>
+        )}
+      </Card>
 
       <Card>
         <div className="flex justify-between items-center mb-6">
@@ -372,6 +596,135 @@ const AgendasPage: React.FC = () => {
             >
               Eliminar
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal para consultar espacios disponibles */}
+      <Modal
+        isOpen={showEspaciosModal}
+        onClose={() => {
+          setShowEspaciosModal(false);
+          setAgendaParaConsultar(null);
+          setEspaciosDisponibles(null);
+        }}
+        title="Consultar Espacios Disponibles"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {agendaParaConsultar && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">
+                {agendaParaConsultar.nombre}
+              </h3>
+              <p className="text-blue-700 text-sm">
+                Operador: {agendaParaConsultar.operador?.nombre} {agendaParaConsultar.operador?.apellido}
+              </p>
+              {agendaParaConsultar.descripcion && (
+                <p className="text-blue-600 text-sm mt-1">
+                  {agendaParaConsultar.descripcion}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha a consultar
+              </label>
+              <div className="flex gap-3">
+                <Input
+                  type="date"
+                  value={fechaConsulta}
+                  onChange={(e) => setFechaConsulta(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={consultarEspacios}
+                  disabled={isLoadingEspacios}
+                  className="flex items-center gap-2"
+                >
+                  {isLoadingEspacios ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Consultar
+                </Button>
+              </div>
+            </div>
+
+            {espaciosDisponibles && (
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarDays className="w-5 h-5 text-gray-600" />
+                    <h4 className="font-semibold text-gray-900">
+                      Espacios disponibles para {formatDate(espaciosDisponibles.fecha_consultada)}
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Total de horarios:</span>
+                      <span className="font-medium ml-2">{espaciosDisponibles.total_horarios}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Con espacio disponible:</span>
+                      <span className="font-medium ml-2">{espaciosDisponibles.horarios_con_espacio}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {espaciosDisponibles.horarios_disponibles.length > 0 ? (
+                  <div className="space-y-3">
+                    <h5 className="font-medium text-gray-900">Horarios del día:</h5>
+                    <div className="grid gap-3">
+                      {espaciosDisponibles.horarios_disponibles.map((horario: any) => (
+                        <div
+                          key={horario.id}
+                          className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          style={{ borderLeftColor: horario.color, borderLeftWidth: '4px' }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h6 className="font-medium text-gray-900 mb-1">
+                                {horario.titulo}
+                              </h6>
+                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                <span>
+                                  <Clock className="w-4 h-4 inline mr-1" />
+                                  {formatTime(horario.hora_inicio)} - {formatTime(horario.hora_fin)}
+                                </span>
+                                <Badge variant={horario.disponible ? 'success' : 'outline'}>
+                                  {horario.disponible ? 'Disponible' : 'Ocupado'}
+                                </Badge>
+                              </div>
+                              {horario.notas && (
+                                <p className="text-sm text-gray-500 mt-2">
+                                  {horario.notas}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right text-sm">
+                              <div className="text-gray-600">Capacidad:</div>
+                              <div className="font-medium">{horario.capacidad}</div>
+                              <div className="text-gray-600 mt-1">Disponibles:</div>
+                              <div className="font-medium text-green-600">{horario.disponibles}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CalendarDays className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No hay horarios programados para este día</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </Modal>
