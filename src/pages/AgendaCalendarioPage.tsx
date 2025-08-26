@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -8,7 +8,10 @@ import {
   User, 
   Phone, 
   Mail, 
-  Trash2
+  Trash2,
+  Grid3X3,
+  CalendarDays,
+  Clock
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
@@ -66,14 +69,18 @@ interface CalendarioData {
   calendario: DiaCalendario[];
 }
 
+type VistaCalendario = 'mes' | 'semana' | 'dia';
+
 const AgendaCalendarioPage: React.FC = () => {
   const { agendaId } = useParams<{ agendaId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [calendarioData, setCalendarioData] = useState<CalendarioData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mesActual, setMesActual] = useState(new Date().getMonth() + 1);
   const [anioActual, setAnioActual] = useState(new Date().getFullYear());
+  const [vistaActual, setVistaActual] = useState<VistaCalendario>('mes');
   
   // Estados para modal de cita
   const [showCitaModal, setShowCitaModal] = useState(false);
@@ -93,9 +100,40 @@ const AgendaCalendarioPage: React.FC = () => {
 
   useEffect(() => {
     if (agendaId) {
-      cargarCalendario();
+      // Verificar si hay parámetros en la URL para selección automática
+      const fechaParam = searchParams.get('fecha');
+      const horarioParam = searchParams.get('horario');
+      
+      if (fechaParam) {
+        const fecha = new Date(fechaParam);
+        setMesActual(fecha.getMonth() + 1);
+        setAnioActual(fecha.getFullYear());
+      }
+      
+      cargarCalendario().then(() => {
+        // Si hay parámetros de URL, seleccionar automáticamente el horario
+        if (fechaParam && horarioParam) {
+          setTimeout(() => {
+            seleccionarHorarioAutomaticamente(fechaParam, parseInt(horarioParam));
+          }, 500);
+        }
+      });
     }
   }, [agendaId, mesActual, anioActual]);
+
+  const seleccionarHorarioAutomaticamente = (fecha: string, horarioId: number) => {
+    if (!calendarioData) return;
+    
+    const diaEncontrado = calendarioData.calendario.find(dia => dia.fecha === fecha);
+    if (diaEncontrado) {
+      const horarioEncontrado = diaEncontrado.horarios.find(h => h.id === horarioId);
+      if (horarioEncontrado && horarioEncontrado.disponible) {
+        abrirModalCita(horarioEncontrado, fecha);
+        // Limpiar los parámetros de URL después de la selección
+        setSearchParams({});
+      }
+    }
+  };
 
   const cargarCalendario = async () => {
     if (!agendaId) return;
@@ -132,6 +170,10 @@ const AgendaCalendarioPage: React.FC = () => {
         setMesActual(mesActual + 1);
       }
     }
+  };
+
+  const cambiarVista = (vista: VistaCalendario) => {
+    setVistaActual(vista);
   };
 
   const abrirModalCita = (horario: Horario, fecha: string) => {
@@ -182,7 +224,8 @@ const AgendaCalendarioPage: React.FC = () => {
       await agendaService.crearCita(data);
       toast.success('Cita agendada correctamente');
       setShowCitaModal(false);
-      cargarCalendario();
+      // Recargar el calendario para actualizar el estado
+      await cargarCalendario();
     } catch (error: any) {
       console.error('Error al guardar cita:', error);
       toast.error(error.response?.data?.error || 'Error al agendar la cita');
@@ -200,7 +243,8 @@ const AgendaCalendarioPage: React.FC = () => {
       await agendaService.eliminarCita(citaSeleccionada.horario.cita.id);
       toast.success('Cita eliminada correctamente');
       setShowCitaModal(false);
-      cargarCalendario();
+      // Recargar el calendario para actualizar el estado
+      await cargarCalendario();
     } catch (error: any) {
       console.error('Error al eliminar cita:', error);
       toast.error(error.response?.data?.error || 'Error al eliminar la cita');
@@ -294,7 +338,36 @@ const AgendaCalendarioPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="w-24"></div> {/* Espaciador */}
+            {/* Filtros de vista */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant={vistaActual === 'mes' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => cambiarVista('mes')}
+                className="flex items-center gap-1"
+              >
+                <Grid3X3 className="w-4 h-4" />
+                Mes
+              </Button>
+              <Button
+                variant={vistaActual === 'semana' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => cambiarVista('semana')}
+                className="flex items-center gap-1"
+              >
+                <CalendarDays className="w-4 h-4" />
+                Semana
+              </Button>
+              <Button
+                variant={vistaActual === 'dia' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => cambiarVista('dia')}
+                className="flex items-center gap-1"
+              >
+                <Clock className="w-4 h-4" />
+                Día
+              </Button>
+            </div>
           </div>
 
           {/* Días de la semana */}

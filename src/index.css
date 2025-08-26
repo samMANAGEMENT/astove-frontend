@@ -403,3 +403,35 @@ body {
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
+
+/* Estilos para los botones de filtro de vista */
+.calendar-navigation .flex.items-center.gap-2 button {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.calendar-navigation .flex.items-center.gap-2 button:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.calendar-navigation .flex.items-center.gap-2 button[data-variant="default"] {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.calendar-navigation .flex.items-center.gap-2 button[data-variant="default"]:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
