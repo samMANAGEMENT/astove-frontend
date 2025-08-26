@@ -5,15 +5,10 @@ import {
   ChevronRight, 
   Plus, 
   Calendar, 
-  Clock, 
   User, 
   Phone, 
   Mail, 
-  Edit, 
-  Trash2,
-  CheckCircle,
-  XCircle,
-  AlertCircle
+  Trash2
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {

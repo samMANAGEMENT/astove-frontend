@@ -680,7 +680,7 @@ const AgendasPage: React.FC = () => {
                   <div className="space-y-3">
                     <h5 className="font-medium text-gray-900">Horarios del día:</h5>
                     <div className="grid gap-3">
-                      {espaciosDisponibles.horarios_disponibles.map((horario: any, index: number) => (
+                      {espaciosDisponibles.horarios_disponibles.map((horario: any) => (
                         <div
                           key={horario.id}
                           className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
