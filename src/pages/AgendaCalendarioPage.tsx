@@ -341,7 +341,7 @@ const AgendaCalendarioPage: React.FC = () => {
             {/* Filtros de vista */}
             <div className="flex items-center gap-2">
               <Button
-                variant={vistaActual === 'mes' ? 'default' : 'outline'}
+                variant={vistaActual === 'mes' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => cambiarVista('mes')}
                 className="flex items-center gap-1"
@@ -350,7 +350,7 @@ const AgendaCalendarioPage: React.FC = () => {
                 Mes
               </Button>
               <Button
-                variant={vistaActual === 'semana' ? 'default' : 'outline'}
+                variant={vistaActual === 'semana' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => cambiarVista('semana')}
                 className="flex items-center gap-1"
@@ -359,7 +359,7 @@ const AgendaCalendarioPage: React.FC = () => {
                 Semana
               </Button>
               <Button
-                variant={vistaActual === 'dia' ? 'default' : 'outline'}
+                variant={vistaActual === 'dia' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => cambiarVista('dia')}
                 className="flex items-center gap-1"
