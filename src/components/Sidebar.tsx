@@ -179,12 +179,17 @@ const getSidebarItems = (userRole?: string, hasModuleAccess?: (module: string) =
                 'gastos': 'gastos',
                 'shops': 'pagos',
                 'reportes': 'reportes',
-                'admin': 'usuarios',
                 'modulos-premium': 'modulos_entidades'
             };
 
             const moduleName = moduleMap[item.id];
-            if (!moduleName) return true; // Si no hay mapeo, mostrar por defecto
+            if (!moduleName) {
+                // Para items sin mapeo directo (como 'admin'), verificar si tienen children con permisos
+                if (item.children) {
+                    return true; // Permitir que se evalúe en el map siguiente
+                }
+                return true; // Si no hay mapeo y no tiene children, mostrar por defecto
+            }
 
             return hasModuleAccess(moduleName);
         }).map(item => {
