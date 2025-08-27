@@ -200,10 +200,10 @@ const DashboardPage: React.FC = () => {
   const stats = [
     {
       title: 'Ingresos Totales',
-      value: totalGanado !== null
-        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGanado)
+      value: gananciasMetodoData?.total_general
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.total_general)
         : '--',
-      isLoading: isLoadingTotal,
+      isLoading: isLoadingGananciasMetodo,
       change: '+12%',
       changeType: 'increase',
       icon: <DollarSign className="w-6 h-6" />,
@@ -215,8 +215,8 @@ const DashboardPage: React.FC = () => {
         ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ganancia_neta)
         : '--',
       isLoading: isLoadingGanancia,
-      change: gananciaNeta?.porcentaje_ganancia 
-        ? `${gananciaNeta.porcentaje_ganancia.toFixed(1)}%` 
+      change: gananciasMetodoData?.total_general && gananciaNeta?.ganancia_neta
+        ? `${((gananciaNeta.ganancia_neta / gananciasMetodoData.total_general) * 100).toFixed(1)}%`
         : '--',
       changeType: 'increase',
       icon: <TrendingUp className="w-6 h-6" />,
