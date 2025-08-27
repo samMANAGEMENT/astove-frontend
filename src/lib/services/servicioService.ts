@@ -17,7 +17,7 @@ export interface ServicioRealizado {
   servicio_id: number;
   cantidad: string;
   fecha: string;
-  metodo_pago: 'efectivo' | 'transferencia';
+  metodo_pago: 'efectivo' | 'transferencia' | 'mixto';
   monto_efectivo: number;
   monto_transferencia: number;
   total_servicio: number;
@@ -84,7 +84,7 @@ interface ServicioMultiple {
 interface CreateServiciosMultiplesData {
   empleado_id: number;
   fecha: string;
-  metodo_pago: 'efectivo' | 'transferencia';
+  metodo_pago: 'efectivo' | 'transferencia' | 'mixto';
   monto_efectivo: number;
   monto_transferencia: number;
   servicios: ServicioMultiple[];

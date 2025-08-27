@@ -381,7 +381,7 @@ export default function ServicesRegister() {
       await servicioService.createServiciosMultiples({
         empleado_id: Number(selectedOperador.id),
         fecha: formatDateForAPI(fechaServicio),
-        metodo_pago: metodoPago === 'mixto' ? 'efectivo' : metodoPago,
+        metodo_pago: metodoPago,
         monto_efectivo: parseFloat(unformatNumber(montoEfectivo)) || 0,
         monto_transferencia: parseFloat(unformatNumber(montoTransferencia)) || 0,
         servicios: serviciosData
