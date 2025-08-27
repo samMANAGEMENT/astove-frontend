@@ -200,7 +200,7 @@ const ProductosPage: React.FC = () => {
     }
 
     if (formData.costo_unitario <= formData.precio_unitario) {
-      errors.costo_unitario = 'El costo unitario debe ser mayor al precio unitario';
+      errors.costo_unitario = 'El precio de venta debe ser mayor al costo de compra para tener ganancia';
     }
 
     if (formData.stock < 0) {
@@ -401,7 +401,8 @@ const ProductosPage: React.FC = () => {
     const numPrecio = typeof precio === 'string' ? parseFloat(precio) : precio;
 
     if (isNaN(numCosto) || isNaN(numPrecio)) return 0;
-    return numPrecio - numCosto; // Ganancia = Precio de venta - Costo de compra
+    // En tu caso: costo_unitario es el precio de venta y precio_unitario es el costo de compra
+    return numCosto - numPrecio; // Ganancia = Precio de venta - Costo de compra
   };
 
   // Función para formatear números para inputs (con separadores de miles)
@@ -420,7 +421,7 @@ const ProductosPage: React.FC = () => {
   // Calcular el total de la venta
   const calcularTotalVenta = () => {
     if (!productoToVender) return 0;
-    return productoToVender.precio_unitario * ventaFormData.cantidad; // Usar precio de venta, no costo
+    return productoToVender.costo_unitario * ventaFormData.cantidad; // Usar precio de venta
   };
 
   // Calcular el total de montos (efectivo + transferencia)
@@ -454,14 +455,14 @@ const ProductosPage: React.FC = () => {
     },
     {
       key: 'precio_unitario' as keyof Producto,
-      header: 'Precio Unitario',
+      header: 'Costo de Compra',
       render: (_value: any, _row: Producto) => (
         <div className="text-gray-600">{formatCurrency(_value)}</div>
       ),
     },
     {
       key: 'costo_unitario' as keyof Producto,
-      header: 'Costo Unitario',
+      header: 'Precio de Venta',
       render: (_value: any, _row: Producto) => (
         <div className="text-gray-600">{formatCurrency(_value)}</div>
       ),
@@ -680,7 +681,7 @@ const ProductosPage: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio Unitario
+                Costo de Compra
               </label>
               <Input
                 type="number"
@@ -697,7 +698,7 @@ const ProductosPage: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Costo Unitario
+                Precio de Venta
               </label>
               <Input
                 type="number"
@@ -798,7 +799,7 @@ const ProductosPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-gray-600">Precio de venta:</span>
-                  <p className="font-medium text-green-600">{formatCurrency(productoToVender.precio_unitario)}</p>
+                  <p className="font-medium text-green-600">{formatCurrency(productoToVender.costo_unitario)}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Ganancia unitaria:</span>
