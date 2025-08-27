@@ -44,15 +44,7 @@ const AdminDashboardPage: React.FC = () => {
   const [totalGastosMes, setTotalGastosMes] = React.useState<number>(0);
   const [isLoadingGastos, setIsLoadingGastos] = React.useState(true);
 
-  // Hook para total ganado
-  const totalGanadoApi = useApi();
-  useEffect(() => {
-    const params = selectedEntidadId && !showGlobalView ? `?entidad_id=${selectedEntidadId}` : '';
-    totalGanadoApi.get(`/servicios/total-ganado${params}`);
-  }, [selectedEntidadId, showGlobalView]);
 
-  const totalGanado = totalGanadoApi.data?.total_ganado ?? null;
-  const isLoadingTotal = totalGanadoApi.isLoading;
 
   // Hook para total a pagar por operador
   const totalPagarApi = useApi();
@@ -177,10 +169,10 @@ const AdminDashboardPage: React.FC = () => {
   const stats = [
     {
       title: 'Ingresos Totales',
-      value: totalGanado !== null
-        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGanado)
+      value: gananciasMetodoData?.total_general
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.total_general)
         : '--',
-      isLoading: isLoadingTotal,
+      isLoading: isLoadingGananciasMetodo,
       change: '+12%',
       changeType: 'increase',
       icon: <DollarSign className="w-6 h-6" />,
@@ -192,8 +184,8 @@ const AdminDashboardPage: React.FC = () => {
         ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta.ganancia_neta)
         : '--',
       isLoading: isLoadingGanancia,
-      change: gananciaNeta?.porcentaje_ganancia 
-        ? `${gananciaNeta.porcentaje_ganancia.toFixed(1)}%` 
+      change: gananciasMetodoData?.total_general && gananciaNeta?.ganancia_neta
+        ? `${((gananciaNeta.ganancia_neta / gananciasMetodoData.total_general) * 100).toFixed(1)}%`
         : '--',
       changeType: 'increase',
       icon: <TrendingUp className="w-6 h-6" />,

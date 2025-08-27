@@ -48,22 +48,6 @@ const DashboardPage: React.FC = () => {
   const [estadisticasVentas, setEstadisticasVentas] = React.useState<any>(null);
   const [isLoadingVentas, setIsLoadingVentas] = React.useState(true);
 
-  // Hook para total ganado
-  const totalGanadoApi = useApi();
-  useEffect(() => {
-    totalGanadoApi.get('/servicios/total-ganado');
-  }, []);
-
-  const totalGanado = totalGanadoApi.data?.total_ganado ?? null;
-  const isLoadingTotal = totalGanadoApi.isLoading;
-
-  // Hook para total a pagar por operador
-  const totalPagarApi = useApi();
-  useEffect(() => {
-    totalPagarApi.get('/servicios/total-pagar-operador');
-  }, []);
-
-
   // Hook para ganancias por método de pago
   const gananciasMetodoApi = useApi();
   useEffect(() => {
