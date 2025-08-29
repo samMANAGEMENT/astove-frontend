@@ -411,7 +411,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-green-700">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciaNeta?.ingresos_totales || 0)}
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData?.total_general)}
                   </div>
                 </div>
               </div>
