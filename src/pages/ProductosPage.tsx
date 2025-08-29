@@ -199,8 +199,8 @@ const ProductosPage: React.FC = () => {
       errors.costo_unitario = 'El costo unitario debe ser mayor a 0';
     }
 
-    if (formData.costo_unitario <= formData.precio_unitario) {
-      errors.costo_unitario = 'El precio de venta debe ser mayor al costo de compra para tener ganancia';
+    if (formData.precio_unitario <= formData.costo_unitario) {
+      errors.precio_unitario = 'El precio de venta debe ser mayor al costo de compra para tener ganancia';
     }
 
     if (formData.stock < 0) {
@@ -396,13 +396,13 @@ const ProductosPage: React.FC = () => {
     }
   };
 
-  const calculateGanancia = (costo: number, precio: number) => {
-    const numCosto = typeof costo === 'string' ? parseFloat(costo) : costo;
+  const calculateGanancia = (precio: number, costo: number) => {
     const numPrecio = typeof precio === 'string' ? parseFloat(precio) : precio;
+    const numCosto = typeof costo === 'string' ? parseFloat(costo) : costo;
 
-    if (isNaN(numCosto) || isNaN(numPrecio)) return 0;
-    // En tu caso: costo_unitario es el precio de venta y precio_unitario es el costo de compra
-    return numCosto - numPrecio; // Ganancia = Precio de venta - Costo de compra
+    if (isNaN(numPrecio) || isNaN(numCosto)) return 0;
+    // precio_unitario = precio de venta, costo_unitario = costo de compra
+    return numPrecio - numCosto; // Ganancia = Precio de venta - Costo de compra
   };
 
   // Función para formatear números para inputs (con separadores de miles)
@@ -421,7 +421,7 @@ const ProductosPage: React.FC = () => {
   // Calcular el total de la venta
   const calcularTotalVenta = () => {
     if (!productoToVender) return 0;
-    return productoToVender.costo_unitario * ventaFormData.cantidad; // Usar precio de venta
+    return productoToVender.precio_unitario * ventaFormData.cantidad; // Usar precio de venta
   };
 
   // Calcular el total de montos (efectivo + transferencia)
@@ -454,14 +454,14 @@ const ProductosPage: React.FC = () => {
       ),
     },
     {
-      key: 'precio_unitario' as keyof Producto,
+      key: 'costo_unitario' as keyof Producto,
       header: 'Costo de Compra',
       render: (_value: any, _row: Producto) => (
         <div className="text-gray-600">{formatCurrency(_value)}</div>
       ),
     },
     {
-      key: 'costo_unitario' as keyof Producto,
+      key: 'precio_unitario' as keyof Producto,
       header: 'Precio de Venta',
       render: (_value: any, _row: Producto) => (
         <div className="text-gray-600">{formatCurrency(_value)}</div>
@@ -471,7 +471,7 @@ const ProductosPage: React.FC = () => {
       key: 'ganancia' as keyof Producto,
       header: 'Ganancia',
       render: (_value: any, row: Producto) => {
-        const ganancia = calculateGanancia(row.costo_unitario, row.precio_unitario);
+        const ganancia = calculateGanancia(row.precio_unitario, row.costo_unitario);
         return (
           <div className="text-green-600 font-medium">{formatCurrency(ganancia)}</div>
         );
@@ -486,7 +486,7 @@ const ProductosPage: React.FC = () => {
       key: 'ganancia_total' as keyof Producto,
       header: 'Ganancia Total',
       render: (_value: any, row: Producto) => {
-        const ganancia = calculateGanancia(row.costo_unitario, row.precio_unitario);
+        const ganancia = calculateGanancia(row.precio_unitario, row.costo_unitario);
         const gananciaTotal = ganancia * (typeof row.stock === 'string' ? parseInt(row.stock) : row.stock);
         return (
           <div className="text-green-600 font-medium">{formatCurrency(gananciaTotal)}</div>
@@ -803,7 +803,7 @@ const ProductosPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-gray-600">Ganancia unitaria:</span>
-                  <p className="font-medium text-green-600">{formatCurrency(calculateGanancia(productoToVender.costo_unitario, productoToVender.precio_unitario))}</p>
+                  <p className="font-medium text-green-600">{formatCurrency(calculateGanancia(productoToVender.precio_unitario, productoToVender.costo_unitario))}</p>
                 </div>
               </div>
             </div>
@@ -966,7 +966,7 @@ const ProductosPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">Ganancia total:</span>
-                  <span className="font-medium text-green-600">{formatCurrency(calculateGanancia(productoToVender.costo_unitario, productoToVender.precio_unitario) * ventaFormData.cantidad)}</span>
+                  <span className="font-medium text-green-600">{formatCurrency(calculateGanancia(productoToVender.precio_unitario, productoToVender.costo_unitario) * ventaFormData.cantidad)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700">Stock restante:</span>
