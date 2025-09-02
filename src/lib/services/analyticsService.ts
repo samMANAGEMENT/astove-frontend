@@ -39,14 +39,12 @@ class AnalyticsService {
   async generateReport(
     reportType: string,
     startDate?: string,
-    endDate?: string,
-    filters?: Record<string, any>
+    endDate?: string
   ): Promise<ReportData> {
     const response = await axios.post('/generate-report', {
       report_type: reportType,
       start_date: startDate,
-      end_date: endDate,
-      filters: filters || {}
+      end_date: endDate
     });
     return response.data.data;
   }
@@ -55,8 +53,7 @@ class AnalyticsService {
     reportType: string,
     format: 'excel' | 'csv',
     startDate?: string,
-    endDate?: string,
-    filters?: Record<string, any>
+    endDate?: string
   ): Promise<void> {
     if (format === 'csv') {
       // Para CSV, hacer descarga directa
@@ -64,8 +61,7 @@ class AnalyticsService {
         report_type: reportType,
         format,
         start_date: startDate,
-        end_date: endDate,
-        filters: filters || {}
+        end_date: endDate
       }, {
         responseType: 'blob'
       });
@@ -77,8 +73,7 @@ class AnalyticsService {
         report_type: reportType,
         format,
         start_date: startDate,
-        end_date: endDate,
-        filters: filters || {}
+        end_date: endDate
       });
       
       const exportData = response.data.data;
