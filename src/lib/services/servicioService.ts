@@ -111,6 +111,10 @@ export const servicioService = {
     const response = await api.delete(`/servicios/eliminar-servicio-realizado/${id}`);
     return response.data;
   },
+  deleteService: async (id: number): Promise<{ message: string; id: number }> => {
+    const response = await api.delete(`/servicios/eliminar-servicio/${id}`);
+    return response.data;
+  },
 };
 
 export default servicioService;

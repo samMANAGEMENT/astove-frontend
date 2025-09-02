@@ -177,6 +177,17 @@ const ServiciosPage: React.FC = () => {
   };
 
   const handleDelete = async (servicio: Servicio) => {
+    // Validar si el servicio está activo antes de permitir eliminarlo
+    if (servicio.estado) {
+      toast.warning('No se puede eliminar un servicio activo. Primero desactívalo.');
+      return;
+    }
+    
+    // Validar si el servicio tiene un precio muy alto (podría ser un servicio importante)
+    if (servicio.precio > 1000000) {
+      toast.warning('Este servicio tiene un precio muy alto. ¿Estás seguro de que quieres eliminarlo?');
+    }
+    
     setServicioToDelete(servicio);
   };
 
@@ -249,9 +260,16 @@ const ServiciosPage: React.FC = () => {
       render: (value: string | number | boolean | undefined) => {
         const estado = Boolean(value);
         return (
-          <Badge variant={estado ? 'success' : 'danger'}>
-            {estado ? 'Activo' : 'Inactivo'}
-          </Badge>
+          <div className="flex flex-col gap-1">
+            <Badge variant={estado ? 'success' : 'danger'}>
+              {estado ? 'Activo' : 'Inactivo'}
+            </Badge>
+            {!estado && (
+              <span className="text-xs text-gray-500">
+                Se puede eliminar
+              </span>
+            )}
+          </div>
         );
       },
     },
@@ -287,7 +305,8 @@ const ServiciosPage: React.FC = () => {
       icon: Trash2,
       onClick: handleDelete,
       variant: 'danger' as const,
-      tooltip: 'Eliminar servicio',
+      tooltip: (row: Servicio) => row.estado ? 'No se puede eliminar un servicio activo' : 'Eliminar servicio',
+      disabled: (row: Servicio) => row.estado,
     },
   ];
 
