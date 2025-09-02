@@ -13,7 +13,8 @@ interface Action<T> {
   icon: LucideIcon;
   onClick: (row: T) => void;
   variant?: 'primary' | 'success' | 'danger' | 'warning';
-  tooltip?: string;
+  tooltip?: string | ((row: T) => string);
+  disabled?: (row: T) => boolean;
 }
 
 interface DataTableProps<T> {
@@ -107,15 +108,21 @@ const DataTable = <T extends Record<string, any>>({
                     <div className="flex items-center space-x-2">
                       {actions.map((action, actionIndex) => {
                         const Icon = action.icon;
+                        const isDisabled = action.disabled ? action.disabled(row) : false;
+                        const tooltipText = typeof action.tooltip === 'function' ? action.tooltip(row) : action.tooltip;
+                        
                         return (
                           <button
                             key={actionIndex}
-                            className={getActionClasses(action.variant || 'primary')}
+                            className={`${getActionClasses(action.variant || 'primary')} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              action.onClick(row);
+                              if (!isDisabled) {
+                                action.onClick(row);
+                              }
                             }}
-                            title={action.tooltip}
+                            title={tooltipText}
+                            disabled={isDisabled}
                           >
                             <Icon className="w-4 h-4" />
                           </button>
