@@ -181,6 +181,21 @@ const DashboardPage: React.FC = () => {
     loadData();
   };
 
+  // Función helper para calcular porcentaje de cambio
+  const calcularPorcentajeCambio = (valorActual: number, valorAnterior: number) => {
+    if (!valorAnterior || valorAnterior === 0) return '--';
+    const cambio = ((valorActual - valorAnterior) / valorAnterior) * 100;
+    return `${cambio >= 0 ? '+' : ''}${cambio.toFixed(1)}%`;
+  };
+
+  // Función helper para determinar el tipo de cambio
+  const determinarTipoCambio = (valorActual: number, valorAnterior: number) => {
+    if (!valorAnterior || valorAnterior === 0) return 'neutral';
+    if (valorActual > valorAnterior) return 'increase';
+    if (valorActual < valorAnterior) return 'decrease';
+    return 'neutral';
+  };
+
   const stats = [
     {
       title: 'Ingresos Totales',
@@ -188,8 +203,12 @@ const DashboardPage: React.FC = () => {
         ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.total_general)
         : '--',
       isLoading: isLoadingGananciasMetodo,
-      change: '+12%',
-      changeType: 'increase',
+      change: gananciasMetodoData?.total_general && gananciaNeta?.ingresos_totales_mes_anterior
+        ? calcularPorcentajeCambio(gananciasMetodoData.total_general, gananciaNeta.ingresos_totales_mes_anterior)
+        : '--',
+      changeType: gananciasMetodoData?.total_general && gananciaNeta?.ingresos_totales_mes_anterior
+        ? determinarTipoCambio(gananciasMetodoData.total_general, gananciaNeta.ingresos_totales_mes_anterior)
+        : 'neutral',
       icon: <DollarSign className="w-6 h-6" />,
       color: 'bg-green-500'
     },
@@ -202,7 +221,7 @@ const DashboardPage: React.FC = () => {
       change: gananciasMetodoData?.total_general && gananciaNeta?.ganancia_neta
         ? `${((gananciaNeta.ganancia_neta / gananciasMetodoData.total_general) * 100).toFixed(1)}%`
         : '--',
-      changeType: 'increase',
+      changeType: 'neutral',
       icon: <TrendingUp className="w-6 h-6" />,
       color: 'bg-blue-500'
     },
@@ -236,8 +255,12 @@ const DashboardPage: React.FC = () => {
       title: 'Gastos del Mes',
       value: new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(totalGastosMes),
       isLoading: isLoadingGastos,
-      change: '--',
-      changeType: 'neutral',
+      change: totalGastosMes && gananciaNeta?.gastos_mes_anterior
+        ? calcularPorcentajeCambio(totalGastosMes, gananciaNeta.gastos_mes_anterior)
+        : '--',
+      changeType: totalGastosMes && gananciaNeta?.gastos_mes_anterior
+        ? determinarTipoCambio(totalGastosMes, gananciaNeta.gastos_mes_anterior)
+        : 'neutral',
       icon: <TrendingDown className="w-6 h-6" />,
       color: 'bg-red-500'
     }
@@ -277,7 +300,7 @@ const DashboardPage: React.FC = () => {
                   }`}>
                     {stat.change}
                   </span>
-                  {stat.changeType !== 'neutral' && (
+                  {stat.changeType !== 'neutral' && stat.change !== '--' && (
                     <span className="text-sm text-gray-500 ml-1">vs mes pasado</span>
                   )}
                 </div>

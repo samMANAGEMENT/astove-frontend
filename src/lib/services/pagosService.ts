@@ -81,6 +81,9 @@ export interface GananciaNeta {
   porcentaje_ganancia: number;
   mes: string;
   anio: string;
+  // Datos del mes anterior para comparaciones
+  ingresos_totales_mes_anterior: number;
+  gastos_mes_anterior: number;
 }
 
 const getPagosEmpleados = async (): Promise<PagoEmpleado[]> => {
