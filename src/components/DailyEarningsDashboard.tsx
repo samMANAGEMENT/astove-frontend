@@ -103,25 +103,25 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
   ], [dailyData]);
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 ${className}`}>
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 hover:shadow-md transition-shadow duration-200 ${className}`}>
       {/* Header con navegación */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <div className="flex items-center space-x-2">
             <Calendar className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Ganancias Diarias</h3>
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Ganancias Diarias</h3>
           </div>
-          <Badge variant="info" className="whitespace-nowrap text-sm">
+          <Badge variant="info" className="whitespace-nowrap text-xs md:text-sm self-start sm:self-auto">
             {formatDate(selectedDate)}
           </Badge>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-center sm:justify-end space-x-2">
           <Button
             size="sm"
             variant="outline"
             onClick={goToPreviousDay}
-            className="p-2"
+            className="p-2 md:p-2"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -130,7 +130,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
             size="sm"
             variant="outline"
             onClick={goToToday}
-            className="px-3"
+            className="px-2 md:px-3 text-xs md:text-sm"
           >
             Hoy
           </Button>
@@ -139,7 +139,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
             size="sm"
             variant="outline"
             onClick={goToNextDay}
-            className="p-2"
+            className="p-2 md:p-2"
             disabled={selectedDate.toDateString() === new Date().toDateString()}
           >
             <ChevronRight className="w-4 h-4" />
@@ -148,31 +148,31 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center py-12">
+        <div className="flex justify-center items-center py-8 md:py-12">
           <Spinner size="lg" />
         </div>
       ) : dailyData ? (
         <>
           {/* Stats Grid Compacto */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             {stats.map((stat, index) => (
-              <div key={index} className={`${stat.bgColor} rounded-lg border ${stat.borderColor} p-4 hover:shadow-sm transition-all duration-200`}>
+              <div key={index} className={`${stat.bgColor} rounded-lg border ${stat.borderColor} p-3 md:p-4 hover:shadow-sm transition-all duration-200`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-600 mb-1">{stat.title}</p>
-                    <div className={`text-lg font-bold ${stat.textColor} mb-1`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-600 mb-1 truncate">{stat.title}</p>
+                    <div className={`text-base md:text-lg font-bold ${stat.textColor} mb-1 break-words`}>
                       {stat.title === 'Servicios Realizados'
                         ? stat.value 
                         : formatCurrency(stat.value)
                       }
                     </div>
                     {stat.title === 'Ganancia Neta' && dailyData.resumen_diario?.porcentaje_ganancia && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 truncate">
                         {dailyData.resumen_diario.porcentaje_ganancia.toFixed(1)}% del total
                       </p>
                     )}
                   </div>
-                  <div className={`${stat.color} p-2 rounded-lg ml-2`}>
+                  <div className={`${stat.color} p-2 rounded-lg ml-2 flex-shrink-0`}>
                     <div className="text-white">
                       {stat.icon}
                     </div>
@@ -183,9 +183,9 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
           </div>
 
           {/* Métodos de Pago, Ingresos Adicionales y Ventas de Productos - Layout Compacto */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3 flex items-center">
                 <CreditCard className="w-4 h-4 mr-2 text-blue-600" />
                 Métodos de Pago
               </h4>
@@ -205,8 +205,8 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3 flex items-center">
                 <PlusCircle className="w-4 h-4 mr-2 text-purple-600" />
                 Ingresos Adicionales
               </h4>
@@ -232,8 +232,8 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3 flex items-center">
                 <Package className="w-4 h-4 mr-2 text-indigo-600" />
                 Ventas de Productos
               </h4>
@@ -262,21 +262,21 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
 
           {/* Servicios por Empleado - Versión Compacta */}
           {dailyData.servicios_por_empleado && dailyData.servicios_por_empleado.length > 0 && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3 flex items-center">
                 <Users className="w-4 h-4 mr-2 text-blue-600" />
                 Servicios por Empleado
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {dailyData.servicios_por_empleado.map((empleado: any, index: number) => (
                   <div key={index} className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-sm transition-shadow duration-200">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
                       <div className="flex items-center space-x-2">
-                        <div className="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
+                        <div className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">
                           {empleado.nombre[0]}{empleado.apellido[0]}
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm">
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                             {empleado.nombre} {empleado.apellido}
                           </div>
                           <div className="text-xs text-gray-500">
@@ -284,8 +284,8 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-green-700">
+                      <div className="text-left sm:text-right">
+                        <div className="font-semibold text-green-700 text-sm">
                           {formatCurrency(empleado.total_pagar)}
                         </div>
                         <div className="text-xs text-gray-500">
@@ -321,10 +321,10 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
           )}
 
           {/* Barra de progreso de ganancia - Compacta */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-sm font-semibold text-gray-700">Porcentaje de Ganancia</h4>
-              <span className="text-lg font-bold text-blue-600">
+          <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 md:mb-3 gap-2">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-700">Porcentaje de Ganancia</h4>
+              <span className="text-base md:text-lg font-bold text-blue-600">
                 {dailyData.resumen_diario?.porcentaje_ganancia?.toFixed(1) || '0.0'}%
               </span>
             </div>
@@ -343,10 +343,10 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
           </div>
         </>
       ) : (
-        <div className="text-center py-12">
-          <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-base font-medium text-gray-900 mb-2">No hay datos disponibles</h3>
-          <p className="text-sm text-gray-500">No se encontraron ganancias para esta fecha</p>
+        <div className="text-center py-8 md:py-12">
+          <BarChart3 className="w-10 h-10 md:w-12 md:h-12 text-gray-400 mx-auto mb-3 md:mb-4" />
+          <h3 className="text-sm md:text-base font-medium text-gray-900 mb-2">No hay datos disponibles</h3>
+          <p className="text-xs md:text-sm text-gray-500">No se encontraron ganancias para esta fecha</p>
         </div>
       )}
     </div>

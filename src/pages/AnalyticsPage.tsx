@@ -4,7 +4,6 @@ import {
   Download, 
   FileSpreadsheet, 
   BarChart3, 
-  Filter, 
   Building2, 
   Users, 
   TrendingUp, 
@@ -24,39 +23,30 @@ import {
 } from 'lucide-react';
 import analyticsService from '../lib/services/analyticsService';
 import type { ReportType, ReportData } from '../lib/services/analyticsService';
-import entidadesService from '../lib/services/entidadesService';
-import type { Entidad } from '../lib/services/entidadesService';
-
-interface ReportFilters {
-  entidad_id?: number;
-}
+import { formatDateForAPI } from '../lib/dateConfig';
 
 const AnalyticsPage: React.FC = () => {
   const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
-  const [entidades, setEntidades] = useState<Entidad[]>([]);
   const [selectedReport, setSelectedReport] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [filters, setFilters] = useState<ReportFilters>({});
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [error, setError] = useState<string>('');
   const [showReportInfo, setShowReportInfo] = useState(false);
   const [quickDateRange, setQuickDateRange] = useState<string>('last_month');
 
   useEffect(() => {
     loadReportTypes();
-    loadEntidades();
     setDefaultDates();
   }, []);
 
   const setDefaultDates = () => {
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    setStartDate(lastMonth.toISOString().split('T')[0]);
-    setEndDate(now.toISOString().split('T')[0]);
+    setStartDate(formatDateForAPI(lastMonth));
+    setEndDate(formatDateForAPI(now));
   };
 
   const setQuickDates = (range: string) => {
@@ -86,8 +76,8 @@ const AnalyticsPage: React.FC = () => {
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     }
     
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(now.toISOString().split('T')[0]);
+    setStartDate(formatDateForAPI(start));
+    setEndDate(formatDateForAPI(now));
     setQuickDateRange(range);
   };
 
@@ -101,14 +91,7 @@ const AnalyticsPage: React.FC = () => {
     }
   };
 
-  const loadEntidades = async () => {
-    try {
-      const entidadesData = await entidadesService.getEntidades();
-      setEntidades(entidadesData);
-    } catch (error) {
-      console.error('Error loading entidades:', error);
-    }
-  };
+
 
   const handleGenerateReport = async () => {
     if (!selectedReport) {
@@ -123,8 +106,7 @@ const AnalyticsPage: React.FC = () => {
       const data = await analyticsService.generateReport(
         selectedReport,
         startDate,
-        endDate,
-        filters
+        endDate
       );
       setReportData(data);
       setShowReportInfo(true);
@@ -150,8 +132,7 @@ const AnalyticsPage: React.FC = () => {
         selectedReport,
         format,
         startDate,
-        endDate,
-        filters
+        endDate
       );
     } catch (error: any) {
       console.error('Error exporting report:', error);
@@ -281,19 +262,19 @@ const AnalyticsPage: React.FC = () => {
     });
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
         {summaryItems.map((item) => (
-          <Card key={item.key} className="p-6 hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+          <Card key={item.key} className="p-4 md:p-6 hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
             <div className="flex items-center justify-between mb-3">
               <div className={`p-2 rounded-lg bg-blue-100 ${item.colorClass}`}>
                 {item.icon}
               </div>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs hidden sm:block">
                 {item.label.split(' ').slice(0, 2).join(' ')}
               </Badge>
             </div>
-            <div className="text-2xl font-bold text-gray-900 mb-1">{item.value}</div>
-            <div className="text-sm text-gray-600">{item.label}</div>
+            <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">{item.value}</div>
+            <div className="text-xs md:text-sm text-gray-600 leading-tight">{item.label}</div>
           </Card>
         ))}
       </div>
@@ -328,13 +309,19 @@ const AnalyticsPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header Mejorado */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 md:p-8 text-white">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">📊 Analytics & Reportes</h1>
-            <p className="text-blue-100 text-lg">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">📊 Analytics & Reportes</h1>
+            <p className="text-blue-100 text-base md:text-lg">
               Genera reportes detallados y análisis financieros de tu negocio
             </p>
+          </div>
+          <div className="block md:hidden">
+            <div className="text-center">
+              <div className="text-xl font-bold">{reportTypes.length}</div>
+              <div className="text-blue-100 text-sm">Tipos de Reportes</div>
+            </div>
           </div>
           <div className="hidden md:block">
             <div className="text-right">
@@ -346,7 +333,7 @@ const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Panel de Configuración Mejorado */}
-      <Card className="p-8 shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+      <Card className="p-4 md:p-8 shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center">
             <Settings className="w-5 h-5 mr-2 text-blue-600" />
@@ -391,7 +378,7 @@ const AnalyticsPage: React.FC = () => {
         {renderQuickDateButtons()}
 
         {/* Configuración Principal */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 flex items-center">
               <BarChart3 className="w-4 h-4 mr-2 text-blue-600" />
@@ -475,17 +462,7 @@ const AnalyticsPage: React.FC = () => {
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center bg-white hover:bg-gray-50"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-            </Button>
-            
-            <Button
-              variant="outline"
               onClick={() => {
-                setFilters({});
                 setDefaultDates();
                 setQuickDateRange('last_month');
               }}
@@ -527,42 +504,6 @@ const AnalyticsPage: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Filtros Expandibles */}
-        {showFilters && (
-          <div className="mt-6 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Filter className="w-5 h-5 mr-2 text-blue-600" />
-              Filtros Avanzados
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Entidad (Opcional)
-                </label>
-                <select
-                  value={filters.entidad_id?.toString() || ''}
-                  onChange={(e) => setFilters({
-                    ...filters,
-                    entidad_id: e.target.value ? parseInt(e.target.value) : undefined
-                  })}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
-                    filters.entidad_id 
-                      ? 'border-blue-300 bg-blue-50 text-gray-900' 
-                      : 'border-gray-300 bg-gray-50 text-gray-500'
-                  }`}
-                >
-                  <option value="" className="text-gray-500">Todas las entidades</option>
-                  {entidades.map((entidad) => (
-                    <option key={entidad.id} value={entidad.id} className="text-gray-900">
-                      {entidad.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
       </Card>
 
       {/* Mensaje de Error Mejorado */}
@@ -580,63 +521,119 @@ const AnalyticsPage: React.FC = () => {
 
       {/* Tabla de Datos Mejorada */}
       {reportData && (
-        <Card className="p-8 shadow-lg border-0">
+        <Card className="p-4 md:p-8 shadow-lg border-0">
           <div className="mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{reportData.title}</h3>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{reportData.title}</h3>
                 <p className="text-gray-600 flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
                   Período: {reportData.period}
                 </p>
               </div>
-              <Badge variant="success" className="text-sm">
+              <Badge variant="success" className="text-sm self-start md:self-auto">
                 {reportData.data.length} registros
               </Badge>
             </div>
           </div>
 
-          <DataTable
-            data={reportData.data}
-            columns={reportData.columns.map(col => ({
-              key: col.key,
-              header: col.header,
-              render: (value: any) => formatColumnValue(value, col.key)
-            }))}
-            emptyMessage={
-              <div className="text-center py-8">
-                <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No hay datos disponibles para el período seleccionado</p>
+          {/* Vista Móvil - Cards Responsive */}
+          <div className="block md:hidden space-y-4">
+            {reportData.data.map((row, index) => (
+              <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-gray-900 text-lg">{row.operador}</h4>
+                  <Badge variant="outline" className="text-xs">
+                    {row.entidad}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-gray-500">Ingresos Servicios:</span>
+                    <div className="font-semibold text-green-600">
+                      {analyticsService.formatCurrency(row.ingresos_servicios)}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-gray-500">Pagos Servicios:</span>
+                    <div className="font-semibold text-blue-600">
+                      {analyticsService.formatCurrency(row.pagos_servicios)}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-gray-500">Pagos Realizados:</span>
+                    <div className="font-semibold text-purple-600">
+                      {analyticsService.formatCurrency(row.pagos_realizados)}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-gray-500">Pagos Pendientes:</span>
+                    <div className="font-semibold text-orange-600">
+                      {analyticsService.formatCurrency(row.pagos_pendientes)}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-gray-500">Ganancia Neta:</span>
+                    <div className={`font-semibold ${row.ganancia_neta_operador >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {analyticsService.formatCurrency(row.ganancia_neta_operador)}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-gray-500">Cantidad Servicios:</span>
+                    <div className="font-semibold text-gray-900">
+                      {row.cantidad_servicios}
+                    </div>
+                  </div>
+                </div>
               </div>
-            }
-          />
+            ))}
+          </div>
+
+          {/* Vista Desktop - Tabla Completa */}
+          <div className="hidden md:block">
+            <DataTable
+              data={reportData.data}
+              columns={reportData.columns.map(col => ({
+                key: col.key,
+                header: col.header,
+                render: (value: any) => formatColumnValue(value, col.key)
+              }))}
+              emptyMessage={
+                <div className="text-center py-8">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No hay datos disponibles para el período seleccionado</p>
+                </div>
+              }
+            />
+          </div>
         </Card>
       )}
 
       {/* Galería de Reportes Mejorada */}
       {!reportData && (
-        <Card className="p-8 shadow-lg border-0">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">📈 Tipos de Reportes Disponibles</h3>
-            <p className="text-gray-600">Selecciona un reporte para comenzar tu análisis</p>
+        <Card className="p-4 md:p-8 shadow-lg border-0">
+          <div className="text-center mb-6 md:mb-8">
+            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">📈 Tipos de Reportes Disponibles</h3>
+            <p className="text-gray-600 text-sm md:text-base">Selecciona un reporte para comenzar tu análisis</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {reportTypes.map((type) => (
               <div 
                 key={type.id} 
-                className="group p-6 cursor-pointer hover:shadow-xl transition-all duration-300 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 transform hover:scale-105"
+                className="group p-4 md:p-6 cursor-pointer hover:shadow-xl transition-all duration-300 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 transform hover:scale-105"
                 onClick={() => setSelectedReport(type.id)}
               >
-                <div className="flex items-start space-x-4">
-                  <div className={`p-3 rounded-lg bg-gradient-to-r ${getCategoryGradient(type.category)} text-white group-hover:scale-110 transition-transform duration-200`}>
+                <div className="flex items-start space-x-3 md:space-x-4">
+                  <div className={`p-2 md:p-3 rounded-lg bg-gradient-to-r ${getCategoryGradient(type.category)} text-white group-hover:scale-110 transition-transform duration-200`}>
                     {getReportTypeIcon(type.category)}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200">
+                    <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors duration-200 text-sm md:text-base">
                       {type.name}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-3 leading-relaxed">
+                    <p className="text-xs md:text-sm text-gray-600 mb-3 leading-relaxed">
                       {type.description}
                     </p>
                     <Badge variant={getCategoryColor(type.category)} className="text-xs">
@@ -644,7 +641,7 @@ const AnalyticsPage: React.FC = () => {
                     </Badge>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100">
                   <div className="flex items-center text-xs text-gray-500">
                     <Info className="w-3 h-3 mr-1" />
                     Haz clic para seleccionar
