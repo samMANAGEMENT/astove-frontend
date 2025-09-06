@@ -182,11 +182,7 @@ const ServiciosPage: React.FC = () => {
       toast.warning('No se puede eliminar un servicio activo. Primero desactívalo.');
       return;
     }
-    
-    // Validar si el servicio tiene un precio muy alto (podría ser un servicio importante)
-    if (servicio.precio > 1000000) {
-      toast.warning('Este servicio tiene un precio muy alto. ¿Estás seguro de que quieres eliminarlo?');
-    }
+
     
     setServicioToDelete(servicio);
   };
@@ -195,7 +191,8 @@ const ServiciosPage: React.FC = () => {
     if (!servicioToDelete) return;
     try {
       setIsLoading(true);
-      // Aquí deberías llamar a delete cuando exista en el servicio
+      const response = await servicioService.deleteService(servicioToDelete.id);
+      console.log(response);
       toast.success('Servicio eliminado exitosamente');
       await loadServicios();
       setServicioToDelete(null);
