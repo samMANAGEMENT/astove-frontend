@@ -15,6 +15,7 @@ import {
 } from '../components/ui';
 import agendaService, { type Agenda, type CrearAgendaData } from '../lib/services/agendaService';
 import operadoresService, { type Operador } from '../lib/services/operadoresService';
+import AccordionItem from '../components/AccordionItem';
 
 interface AgendaFormData {
   operador_id: number | null;
@@ -53,6 +54,7 @@ const AgendasPage: React.FC = () => {
   const [disponibilidadTiempoReal, setDisponibilidadTiempoReal] = useState<any>(null);
   const [isLoadingDisponibilidad, setIsLoadingDisponibilidad] = useState(false);
   const [fechaDisponibilidad, setFechaDisponibilidad] = useState(new Date().toISOString().split('T')[0]);
+  // (Vista horizontal por operador, sin acordeón)
 
   useEffect(() => {
     loadAgendas();
@@ -60,11 +62,19 @@ const AgendasPage: React.FC = () => {
     cargarDisponibilidadTiempoReal();
   }, []);
 
+  // Refrescar disponibilidad cuando cambia la fecha seleccionada
+  useEffect(() => {
+    if (fechaDisponibilidad) {
+      cargarDisponibilidadTiempoReal(fechaDisponibilidad);
+    }
+  }, [fechaDisponibilidad]);
+
   // Cargar disponibilidad en tiempo real
-  const cargarDisponibilidadTiempoReal = async () => {
+  const cargarDisponibilidadTiempoReal = async (fecha?: string) => {
+    const fechaConsulta = fecha ?? fechaDisponibilidad;
     setIsLoadingDisponibilidad(true);
     try {
-      const data = await agendaService.obtenerDisponibilidadTiempoReal(fechaDisponibilidad);
+      const data = await agendaService.obtenerDisponibilidadTiempoReal(fechaConsulta);
       setDisponibilidadTiempoReal(data);
     } catch (error: any) {
       console.error('Error al cargar disponibilidad:', error);
@@ -115,12 +125,12 @@ const AgendasPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validación
     const errors: typeof formErrors = {};
     if (!formData.operador_id) errors.operador_id = 'El operador es requerido';
     if (!formData.nombre.trim()) errors.nombre = 'El nombre es requerido';
-    
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -134,7 +144,7 @@ const AgendasPage: React.FC = () => {
         await agendaService.create(formData as CrearAgendaData);
         toast.success('Agenda creada correctamente');
       }
-      
+
       setIsModalOpen(false);
       resetForm();
       setEditingAgenda(null);
@@ -200,8 +210,15 @@ const AgendasPage: React.FC = () => {
     });
   };
 
+  // Parsear YYYY-MM-DD como fecha local (sin aplicar zona horaria)
+  const parseYmdToLocalDate = (dateString: string) => {
+    const [y, m, d] = dateString.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-CO', {
+    const date = parseYmdToLocalDate(dateString);
+    return date.toLocaleDateString('es-CO', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -242,7 +259,7 @@ const AgendasPage: React.FC = () => {
       render: (_: any, agenda: Agenda) => (
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-green-500" />
-          <span>{agenda.horarios?.length || 0} horarios</span>
+          <span>{(agenda as any).horarios_count ?? agenda.horarios?.length ?? 0} horarios</span>
         </div>
       ),
     },
@@ -306,7 +323,7 @@ const AgendasPage: React.FC = () => {
 
       {/* Sección de disponibilidad en tiempo real */}
       <Card>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Disponibilidad en Tiempo Real
@@ -320,8 +337,9 @@ const AgendasPage: React.FC = () => {
               type="date"
               value={fechaDisponibilidad}
               onChange={(e) => {
-                setFechaDisponibilidad(e.target.value);
-                cargarDisponibilidadTiempoReal();
+                const nuevaFecha = e.target.value;
+                setFechaDisponibilidad(nuevaFecha);
+                cargarDisponibilidadTiempoReal(nuevaFecha);
               }}
               className="w-auto"
             />
@@ -376,75 +394,21 @@ const AgendasPage: React.FC = () => {
             </div>
 
             {/* Lista de agendas con disponibilidad */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <h4 className="font-medium text-gray-900">Disponibilidad por Operador</h4>
-              {disponibilidadTiempoReal.disponibilidad.map((agenda: any) => (
-                <div key={agenda.agenda_id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h5 className="font-medium text-gray-900">
-                        {agenda.operador.nombre} {agenda.operador.apellido}
-                      </h5>
-                      <p className="text-sm text-gray-600">{agenda.agenda_nombre}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-green-600">
-                          {agenda.horarios_libres} libres
-                        </span>
-                        <span className="text-red-600">
-                          {agenda.horarios_ocupados} ocupados
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {agenda.horarios_disponibles.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {agenda.horarios_disponibles.map((horario: any) => (
-                        <div
-                          key={horario.id}
-                          className={`p-3 rounded-lg border-l-4 ${
-                            horario.disponible
-                              ? 'bg-green-50 border-green-400 hover:bg-green-100 cursor-pointer'
-                              : 'bg-red-50 border-red-400'
-                          }`}
-                          onClick={() => {
-                            if (horario.disponible) {
-                              // Navegar al calendario para agendar
-                              navigate(`/agendas/${agenda.agenda_id}/calendario?fecha=${fechaDisponibilidad}&horario=${horario.id}`);
-                            }
-                          }}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h6 className="font-medium text-gray-900 text-sm">
-                                {horario.titulo}
-                              </h6>
-                              <p className="text-xs text-gray-600">
-                                {formatTime(horario.hora_inicio)} - {formatTime(horario.hora_fin)}
-                              </p>
-                            </div>
-                            <Badge variant={horario.disponible ? 'success' : 'outline'}>
-                              {horario.disponible ? 'Disponible' : 'Ocupado'}
-                            </Badge>
-                          </div>
-                          {!horario.disponible && horario.cita_existente && (
-                            <div className="mt-2 text-xs text-gray-600">
-                              <p>Cliente: {horario.cita_existente.cliente_nombre}</p>
-                              <p>Servicio: {horario.cita_existente.servicio}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-gray-500">
-                      <p>No hay horarios programados para este día</p>
-                    </div>
-                  )}
+              <div className="overflow-x-auto custom-scrollbar">
+                <div className="flex gap-4 pb-2 items-stretch">
+                  {disponibilidadTiempoReal.disponibilidad.map((agenda: any) => (
+                    <AccordionItem
+                      key={agenda.agenda_id}
+                      agenda={agenda}
+                      fechaDisponibilidad={fechaDisponibilidad}
+                      navigate={navigate}
+                      formatTime={formatTime}
+                    />
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -497,9 +461,8 @@ const AgendasPage: React.FC = () => {
             <select
               value={formData.operador_id || ''}
               onChange={(e) => setFormData({ ...formData, operador_id: Number(e.target.value) || null })}
-              className={` text-gray-600 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                formErrors.operador_id ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={` text-gray-600 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.operador_id ? 'border-red-500' : 'border-gray-300'
+                }`}
             >
               <option value="">Seleccionar operador</option>
               {operadores.map((operador) => (
@@ -664,7 +627,7 @@ const AgendasPage: React.FC = () => {
                       Espacios disponibles para {formatDate(espaciosDisponibles.fecha_consultada)}
                     </h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                     <div>
                       <span className="text-gray-600">Total de horarios:</span>
                       <span className="font-medium ml-2">{espaciosDisponibles.total_horarios}</span>
@@ -706,7 +669,7 @@ const AgendasPage: React.FC = () => {
                                 </p>
                               )}
                             </div>
-                            <div className="text-right text-sm">
+                            <div className="text-gray-600 text-right text-sm">
                               <div className="text-gray-600">Capacidad:</div>
                               <div className="font-medium">{horario.capacidad}</div>
                               <div className="text-gray-600 mt-1">Disponibles:</div>
