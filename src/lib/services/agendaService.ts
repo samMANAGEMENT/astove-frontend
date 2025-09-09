@@ -17,8 +17,9 @@ export interface Agenda {
   activa: boolean;
   operador?: Operador;
   horarios?: Horario[];
-  created_at: string;
-  updated_at: string;
+  horarios_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Horario {

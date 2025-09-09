@@ -11,7 +11,8 @@ import {
   Trash2,
   Grid3X3,
   CalendarDays,
-  Clock
+  Clock,
+  Edit
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
@@ -80,7 +81,14 @@ const AgendaCalendarioPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [mesActual, setMesActual] = useState(new Date().getMonth() + 1);
   const [anioActual, setAnioActual] = useState(new Date().getFullYear());
-  const [vistaActual, setVistaActual] = useState<VistaCalendario>('mes');
+  const [vistaActual, setVistaActual] = useState<VistaCalendario>('semana');
+  const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+  useEffect(() => {
+    if (isMobile) {
+      setVistaActual('dia');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Estados para modal de cita
   const [showCitaModal, setShowCitaModal] = useState(false);
@@ -97,29 +105,42 @@ const AgendaCalendarioPage: React.FC = () => {
     estado: 'pendiente'
   });
   const [isSavingCita, setIsSavingCita] = useState(false);
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
+  // Edición de horarios (espacios)
+  const [showEditarHorarioModal, setShowEditarHorarioModal] = useState(false);
+  const [horarioEditForm, setHorarioEditForm] = useState<{ titulo: string; hora_inicio: string; hora_fin: string; dia_semana: 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo'; color: string; notas: string; activo: boolean; id?: number; } | null>(null);
+  const diasSemanaValores: Array<'domingo'|'lunes'|'martes'|'miercoles'|'jueves'|'viernes'|'sabado'> = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  // Confirmaciones y carga
+  const [showConfirmEliminarCita, setShowConfirmEliminarCita] = useState(false);
+  const [isDeletingCita, setIsDeletingCita] = useState(false);
+  const [showConfirmEliminarHorario, setShowConfirmEliminarHorario] = useState(false);
+  const [isDeletingHorario, setIsDeletingHorario] = useState(false);
+  const [isSavingHorario, setIsSavingHorario] = useState(false);
+  const [openingHorarioId, setOpeningHorarioId] = useState<number | null>(null);
 
   useEffect(() => {
     if (agendaId) {
       // Verificar si hay parámetros en la URL para selección automática
       const fechaParam = searchParams.get('fecha');
-      const horarioParam = searchParams.get('horario');
       
       if (fechaParam) {
-        const fecha = new Date(fechaParam);
-        setMesActual(fecha.getMonth() + 1);
-        setAnioActual(fecha.getFullYear());
+        const ref = parseYmdToLocalDate(fechaParam);
+        setMesActual(ref.getMonth() + 1);
+        setAnioActual(ref.getFullYear());
       }
       
-      cargarCalendario().then(() => {
-        // Si hay parámetros de URL, seleccionar automáticamente el horario
-        if (fechaParam && horarioParam) {
-          setTimeout(() => {
-            seleccionarHorarioAutomaticamente(fechaParam, parseInt(horarioParam));
-          }, 500);
-        }
-      });
+      cargarCalendario();
     }
   }, [agendaId, mesActual, anioActual]);
+
+  // Selección automática en cuanto exista calendarioData
+  useEffect(() => {
+    const fechaParam = searchParams.get('fecha');
+    const horarioParam = searchParams.get('horario');
+    if (calendarioData && fechaParam && horarioParam) {
+      seleccionarHorarioAutomaticamente(fechaParam, parseInt(horarioParam));
+    }
+  }, [calendarioData]);
 
   const seleccionarHorarioAutomaticamente = (fecha: string, horarioId: number) => {
     if (!calendarioData) return;
@@ -187,6 +208,7 @@ const AgendaCalendarioPage: React.FC = () => {
         notas: horario.cita?.notas || '',
         estado: horario.cita?.estado as any || 'pendiente'
       });
+      setIsEditingExisting(false);
     } else {
       // Si está disponible, crear nueva cita
       setCitaSeleccionada({ horario, fecha });
@@ -198,8 +220,77 @@ const AgendaCalendarioPage: React.FC = () => {
         notas: '',
         estado: 'pendiente'
       });
+      setIsEditingExisting(false);
     }
     setShowCitaModal(true);
+  };
+
+  const abrirEditarHorario = async (horario: Horario, fecha: string) => {
+    if (!agendaId) return;
+    try {
+      setOpeningHorarioId(horario.id);
+      // Buscar detalles del horario para obtener dia_semana y activo
+      const lista = await agendaService.getHorariosByAgenda(parseInt(agendaId));
+      const detalle = lista.find(h => h.id === horario.id);
+      const fechaLocal = new Date(fecha + 'T00:00:00');
+      const diaSemana = detalle?.dia_semana || (diasSemanaValores[fechaLocal.getDay()] as any);
+      setHorarioEditForm({
+        id: horario.id,
+        titulo: detalle?.titulo || horario.titulo,
+        hora_inicio: detalle?.hora_inicio || horario.hora_inicio,
+        hora_fin: detalle?.hora_fin || horario.hora_fin,
+        dia_semana: diaSemana,
+        color: (detalle as any)?.color || (horario as any).color || '#93C5FD',
+        notas: (detalle as any)?.notas || horario.notas || '',
+        activo: (detalle as any)?.activo ?? true,
+      });
+      setShowEditarHorarioModal(true);
+    } catch (e:any) {
+      toast.error('No se pudo cargar el horario');
+    } finally {
+      setOpeningHorarioId(null);
+    }
+  };
+
+  const guardarEdicionHorario = async () => {
+    if (!agendaId || !horarioEditForm?.id) return;
+    try {
+      setIsSavingHorario(true);
+      const payload = {
+        agenda_id: parseInt(agendaId),
+        titulo: horarioEditForm.titulo,
+        hora_inicio: horarioEditForm.hora_inicio,
+        hora_fin: horarioEditForm.hora_fin,
+        dia_semana: horarioEditForm.dia_semana,
+        color: horarioEditForm.color,
+        notas: horarioEditForm.notas,
+        activo: horarioEditForm.activo,
+      } as any;
+      await agendaService.updateHorario(horarioEditForm.id, payload);
+      toast.success('Horario actualizado');
+      setShowEditarHorarioModal(false);
+      await cargarCalendario();
+    } catch (error:any) {
+      toast.error(error.response?.data?.error || 'Error al actualizar horario');
+    } finally {
+      setIsSavingHorario(false);
+    }
+  };
+
+  const eliminarHorario = async () => {
+    if (!horarioEditForm?.id) return;
+    try {
+      setIsDeletingHorario(true);
+      await agendaService.deleteHorario(horarioEditForm.id);
+      toast.success('Horario eliminado');
+      setShowEditarHorarioModal(false);
+      setShowConfirmEliminarHorario(false);
+      await cargarCalendario();
+    } catch (error:any) {
+      toast.error(error.response?.data?.error || 'Error al eliminar horario');
+    } finally {
+      setIsDeletingHorario(false);
+    }
   };
 
   const guardarCita = async () => {
@@ -236,18 +327,49 @@ const AgendaCalendarioPage: React.FC = () => {
 
   const eliminarCita = async () => {
     if (!citaSeleccionada?.horario.cita?.id) return;
-
-    if (!confirm('¿Estás seguro de que quieres eliminar esta cita?')) return;
-
     try {
+      setIsDeletingCita(true);
       await agendaService.eliminarCita(citaSeleccionada.horario.cita.id);
       toast.success('Cita eliminada correctamente');
       setShowCitaModal(false);
+      setShowConfirmEliminarCita(false);
+      setIsEditingExisting(false);
       // Recargar el calendario para actualizar el estado
       await cargarCalendario();
     } catch (error: any) {
       console.error('Error al eliminar cita:', error);
       toast.error(error.response?.data?.error || 'Error al eliminar la cita');
+    } finally {
+      setIsDeletingCita(false);
+    }
+  };
+
+  const actualizarCita = async () => {
+    if (!citaSeleccionada?.horario.cita?.id) return;
+    setIsSavingCita(true);
+    try {
+      const id = citaSeleccionada.horario.cita.id;
+      const data = {
+        cliente_nombre: citaData.cliente_nombre!,
+        cliente_telefono: citaData.cliente_telefono,
+        cliente_email: citaData.cliente_email,
+        servicio: citaData.servicio!,
+        estado: citaData.estado!,
+        notas: citaData.notas,
+      };
+      await agendaService.actualizarCita(id, data);
+      toast.success('Cita actualizada correctamente');
+      setShowCitaModal(false);
+      setIsEditingExisting(false);
+      await cargarCalendario();
+    } catch (error: any) {
+      if (error?.response?.status === 403) {
+        toast.error('No tienes permisos para editar esta cita');
+      } else {
+        toast.error(error.response?.data?.error || 'Error al actualizar la cita');
+      }
+    } finally {
+      setIsSavingCita(false);
     }
   };
 
@@ -270,6 +392,49 @@ const AgendaCalendarioPage: React.FC = () => {
   };
 
   const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+  // Utilidades de fecha local
+  const parseYmdToLocalDate = (dateString: string) => {
+    const [y, m, d] = dateString.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
+  const toYmd = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  // Determinar los días a mostrar según la vista seleccionada
+  const getDiasParaMostrar = (): DiaCalendario[] => {
+    if (!calendarioData) return [];
+    if (vistaActual === 'mes') return calendarioData.calendario;
+
+    // Fecha de referencia: parámetro ?fecha= o hoy
+    const fechaParam = searchParams.get('fecha');
+    const ref = fechaParam ? parseYmdToLocalDate(fechaParam) : new Date();
+
+    if (vistaActual === 'dia') {
+      const fechaISO = toYmd(ref);
+      return calendarioData.calendario.filter(d => d.fecha === fechaISO);
+    }
+
+    // Semana (domingo a sábado) usando fechas locales
+    const refLocal = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+    const day = refLocal.getDay(); // 0=domingo
+    const start = new Date(refLocal);
+    start.setDate(refLocal.getDate() - day);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    return calendarioData.calendario.filter(d => {
+      const f = parseYmdToLocalDate(d.fecha);
+      return f >= start && f <= end;
+    });
+  };
+
+  const diasParaMostrar = getDiasParaMostrar();
 
   if (isLoading) {
     return (
@@ -336,6 +501,40 @@ const AgendaCalendarioPage: React.FC = () => {
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
+              {/* Selector de fecha y botón Hoy */}
+              <div className="hidden sm:flex items-center gap-2">
+                <input
+                  type="date"
+                  value={(() => {
+                    const fechaParam = searchParams.get('fecha');
+                    if (fechaParam) return fechaParam;
+                    const hoy = new Date();
+                    const y = hoy.getFullYear();
+                    const m = String(hoy.getMonth() + 1).padStart(2, '0');
+                    const d = String(hoy.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                  })()}
+                  onChange={(e) => {
+                    setSearchParams({ fecha: e.target.value });
+                  }}
+                  className="px-2 py-1 border rounded"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const hoy = new Date();
+                    const y = hoy.getFullYear();
+                    const m = String(hoy.getMonth() + 1).padStart(2, '0');
+                    const d = String(hoy.getDate()).padStart(2, '0');
+                    setSearchParams({ fecha: `${y}-${m}-${d}` });
+                    setMesActual(hoy.getMonth() + 1);
+                    setAnioActual(y);
+                  }}
+                >
+                  Hoy
+                </Button>
+              </div>
             </div>
 
             {/* Filtros de vista */}
@@ -371,7 +570,7 @@ const AgendaCalendarioPage: React.FC = () => {
           </div>
 
           {/* Días de la semana */}
-          <div className="calendar-grid">
+          <div className="calendar-grid grid grid-cols-1 sm:grid-cols-7 gap-2">
             {diasSemana.map((dia) => (
               <div key={dia} className="calendar-header">
                 {dia}
@@ -380,8 +579,8 @@ const AgendaCalendarioPage: React.FC = () => {
           </div>
 
           {/* Calendario */}
-          <div className="calendar-grid">
-            {calendarioData.calendario.map((dia) => (
+          <div className="calendar-grid grid grid-cols-1 sm:grid-cols-7 gap-2">
+            {diasParaMostrar.map((dia) => (
               <div
                 key={dia.fecha}
                 className={`calendar-day ${
@@ -412,6 +611,24 @@ const AgendaCalendarioPage: React.FC = () => {
                       <div className="time-slot-time">
                         {formatTime(horario.hora_inicio)} - {formatTime(horario.hora_fin)}
                       </div>
+                      {horario.disponible && (
+                        <div className="mt-1 flex justify-end">
+                          <button
+                            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-60"
+                            onClick={(e) => { e.stopPropagation(); abrirEditarHorario(horario, dia.fecha); }}
+                            title="Editar horario"
+                            disabled={openingHorarioId === horario.id}
+                          >
+                            {openingHorarioId === horario.id ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              <>
+                                <Edit className="w-3 h-3" /> Editar
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                       {!horario.disponible && (
                         <div className="time-slot-client">
                           {horario.cita?.cliente_nombre}
@@ -444,7 +661,7 @@ const AgendaCalendarioPage: React.FC = () => {
                 {formatTime(citaSeleccionada.horario.hora_inicio)} - {formatTime(citaSeleccionada.horario.hora_fin)}
               </p>
               <p className="text-blue-600 text-sm">
-                {new Date(citaSeleccionada.fecha).toLocaleDateString('es-CO', {
+                {parseYmdToLocalDate(citaSeleccionada.fecha).toLocaleDateString('es-CO', {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
@@ -533,62 +750,243 @@ const AgendaCalendarioPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            // Mostrar detalles de cita existente
+            // Ver/editar cita existente
             <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{citaData.cliente_nombre}</span>
-                </div>
-                
-                {citaData.cliente_telefono && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <span>{citaData.cliente_telefono}</span>
+              {isEditingExisting ? (
+                // Formulario de edición
+                <div className="space-y-4 text-gray-700">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del Cliente *
+                    </label>
+                    <Input
+                      value={citaData.cliente_nombre}
+                      onChange={(e) => setCitaData({ ...citaData, cliente_nombre: e.target.value })}
+                      placeholder="Nombre completo del cliente"
+                    />
                   </div>
-                )}
-                
-                {citaData.cliente_email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    <span>{citaData.cliente_email}</span>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Teléfono
+                    </label>
+                    <Input
+                      value={citaData.cliente_telefono}
+                      onChange={(e) => setCitaData({ ...citaData, cliente_telefono: e.target.value })}
+                      placeholder="Número de teléfono"
+                    />
                   </div>
-                )}
-                
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">{citaData.servicio}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {getEstadoBadge(citaData.estado!)}
-                </div>
-                
-                {citaData.notas && (
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-700">{citaData.notas}</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      value={citaData.cliente_email}
+                      onChange={(e) => setCitaData({ ...citaData, cliente_email: e.target.value })}
+                      placeholder="Email del cliente"
+                    />
                   </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowCitaModal(false)}
-                >
-                  Cerrar
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={eliminarCita}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar Cita
-                </Button>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Servicio *
+                    </label>
+                    <Input
+                      value={citaData.servicio}
+                      onChange={(e) => setCitaData({ ...citaData, servicio: e.target.value })}
+                      placeholder="Tipo de servicio"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estado
+                    </label>
+                    <select
+                      value={citaData.estado}
+                      onChange={(e) => setCitaData({ ...citaData, estado: e.target.value as any })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="pendiente">Pendiente</option>
+                      <option value="confirmada">Confirmada</option>
+                      <option value="cancelada">Cancelada</option>
+                      <option value="completada">Completada</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notas
+                    </label>
+                    <textarea
+                      value={citaData.notas}
+                      onChange={(e) => setCitaData({ ...citaData, notas: e.target.value })}
+                      placeholder="Notas adicionales"
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsEditingExisting(false)}
+                      disabled={isSavingCita}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={actualizarCita}
+                      disabled={isSavingCita || !citaData.cliente_nombre || !citaData.servicio}
+                    >
+                      {isSavingCita ? <Spinner size="sm" /> : 'Guardar cambios'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Vista solo lectura
+                <>
+                  <div className="space-y-3 text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">{citaData.cliente_nombre}</span>
+                    </div>
+                    {citaData.cliente_telefono && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <span>{citaData.cliente_telefono}</span>
+                      </div>
+                    )}
+                    {citaData.cliente_email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-gray-500" />
+                        <span>{citaData.cliente_email}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">{citaData.servicio}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getEstadoBadge(citaData.estado!)}
+                    </div>
+                    {citaData.notas && (
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-sm text-gray-700">{citaData.notas}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowCitaModal(false)}
+                    >
+                      Cerrar
+                    </Button>
+                    <Button
+                      onClick={() => setIsEditingExisting(true)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => setShowConfirmEliminarCita(true)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar Cita
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
+        </div>
+      </Modal>
+      {/* Modal confirmación eliminar cita */}
+      <Modal
+        isOpen={showConfirmEliminarCita}
+        onClose={() => setShowConfirmEliminarCita(false)}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">¿Deseas eliminar esta cita? Esta acción no se puede deshacer.</p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowConfirmEliminarCita(false)} disabled={isDeletingCita}>Cancelar</Button>
+            <Button variant="danger" onClick={eliminarCita} disabled={isDeletingCita}>
+              {isDeletingCita ? <Spinner size="sm" /> : 'Eliminar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      {/* Modal para editar horario */}
+      <Modal
+        isOpen={showEditarHorarioModal}
+        onClose={() => setShowEditarHorarioModal(false)}
+        title={'Editar Horario'}
+      >
+        {horarioEditForm && (
+          <div className="space-y-4 text-gray-600">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+              <Input value={horarioEditForm.titulo} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, titulo: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Inicio</label>
+                <input type="time" value={horarioEditForm.hora_inicio} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, hora_inicio: e.target.value })} className="w-full px-3 py-2 border rounded-md" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fin</label>
+                <input type="time" value={horarioEditForm.hora_fin} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, hora_fin: e.target.value })} className="w-full px-3 py-2 border rounded-md" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Día de la semana</label>
+              <select value={horarioEditForm.dia_semana} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, dia_semana: e.target.value as any })} className="w-full px-3 py-2 border rounded-md">
+                <option value="lunes">Lunes</option>
+                <option value="martes">Martes</option>
+                <option value="miercoles">Miércoles</option>
+                <option value="jueves">Jueves</option>
+                <option value="viernes">Viernes</option>
+                <option value="sabado">Sábado</option>
+                <option value="domingo">Domingo</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+              <input type="color" value={horarioEditForm.color} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, color: e.target.value })} className="h-10 w-16 p-0 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+              <textarea value={horarioEditForm.notas} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, notas: e.target.value })} rows={3} className="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={horarioEditForm.activo} onChange={(e)=>setHorarioEditForm({ ...horarioEditForm, activo: e.target.checked })} />
+              Activo
+            </label>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="secondary" onClick={()=>setShowEditarHorarioModal(false)} disabled={isSavingHorario || isDeletingHorario}>Cancelar</Button>
+              <Button variant="danger" onClick={()=>setShowConfirmEliminarHorario(true)} disabled={isSavingHorario || isDeletingHorario}>
+                Eliminar
+              </Button>
+              <Button onClick={guardarEdicionHorario} disabled={isSavingHorario}>
+                {isSavingHorario ? <Spinner size="sm" /> : 'Guardar'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      {/* Modal confirmación eliminar horario */}
+      <Modal
+        isOpen={showConfirmEliminarHorario}
+        onClose={() => setShowConfirmEliminarHorario(false)}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">¿Deseas eliminar este horario? Esta acción no se puede deshacer.</p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={()=>setShowConfirmEliminarHorario(false)} disabled={isDeletingHorario}>Cancelar</Button>
+            <Button variant="danger" onClick={eliminarHorario} disabled={isDeletingHorario}>
+              {isDeletingHorario ? <Spinner size="sm" /> : 'Eliminar'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
