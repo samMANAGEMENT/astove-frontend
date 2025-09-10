@@ -6,6 +6,7 @@ export interface Gasto {
   descripcion: string;
   monto: number;
   fecha: string;
+  metodo_pago: string;
   created_at: string;
   updated_at: string;
   entidad?: {
@@ -18,6 +19,7 @@ export interface CrearGastoData {
   descripcion: string;
   monto: number;
   fecha: string;
+  metodo_pago: string;
 }
 
 export interface GastosResponse {
