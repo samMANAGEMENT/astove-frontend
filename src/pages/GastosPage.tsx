@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  DollarSign, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  DollarSign,
   TrendingDown,
   AlertTriangle
 } from 'lucide-react';
-import { 
-  PageHeader, 
-  Button, 
-  Input, 
-  Modal, 
-  DataTable, 
-  Spinner, 
+import {
+  PageHeader,
+  Button,
+  Input,
+  Modal,
+  DataTable,
+  Spinner,
   Card,
   Pagination,
   CurrencyInput
@@ -30,7 +29,7 @@ const GastosPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentGasto, setCurrentGasto] = useState<Gasto | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -40,18 +39,22 @@ const GastosPage: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState<Gasto | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [metodoPago] = useState<'efectivo' | 'transferencia' | 'mixto'>('mixto');
+  const [montoEfectivo, setMontoEfectivo] = useState('');
+  const [montoTransferencia, setMontoTransferencia] = useState('');
 
   // Form state
   const [formData, setFormData] = useState<CrearGastoData>({
     descripcion: '',
     monto: 0,
-    fecha: formatDateForAPI(new Date())
+    fecha: formatDateForAPI(new Date()),
+    metodo_pago: metodoPago
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Load gastos
-  const loadGastos = async () => {
+  async function loadGastos() {
     try {
       setIsLoading(true);
       const response = await gastosService.listarGastos({
@@ -67,7 +70,7 @@ const GastosPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   // Load estadísticas
   const loadEstadisticas = async () => {
@@ -104,7 +107,8 @@ const GastosPage: React.FC = () => {
     setFormData({
       descripcion: '',
       monto: 0,
-      fecha: formatDateForAPI(new Date())
+      fecha: formatDateForAPI(new Date()),
+      metodo_pago: '',
     });
     setErrors({});
     setIsEditMode(false);
@@ -120,7 +124,8 @@ const GastosPage: React.FC = () => {
     setFormData({
       descripcion: gasto.descripcion,
       monto: gasto.monto,
-      fecha: gasto.fecha.split('T')[0]
+      fecha: gasto.fecha.split('T')[0],
+      metodo_pago: gasto.metodo_pago
     });
     setCurrentGasto(gasto);
     setIsEditMode(true);
@@ -133,7 +138,7 @@ const GastosPage: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (!formData.descripcion.trim()) {
       newErrors.descripcion = 'La descripción es obligatoria';
@@ -155,7 +160,7 @@ const GastosPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -169,7 +174,7 @@ const GastosPage: React.FC = () => {
         await gastosService.crearGasto(formData);
         toast.success('¡Gasto creado exitosamente!');
       }
-      
+
       closeModal();
       loadGastos();
       loadEstadisticas();
@@ -209,13 +214,36 @@ const GastosPage: React.FC = () => {
     setGastoToDelete(null);
   };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const formatNumberForInput = (value: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  const unformatNumber = (value: string) => {
+    return value.replace(/\./g, '').replace(/,/g, '');
+  };
+
+  const handleMetodoPagoChange = (metodo: 'efectivo' | 'transferencia' | 'mixto') => {
+      setFormData((prev) => ({ ...prev, metodo_pago: metodo }));
+
+    if (metodo === 'efectivo') {
+      setMontoEfectivo(formatNumberForInput(formData.monto));
+      setMontoTransferencia('0');
+    } else if (metodo === 'transferencia') {
+      setMontoEfectivo('0');
+      setMontoTransferencia(formatNumberForInput(formData.monto));
+    } else {
+      // Mixto - dividir 50/50 automáticamente
+      const mitad = formData.monto / 2;
+      setMontoEfectivo(formatNumberForInput(mitad));
+      setMontoTransferencia(formatNumberForInput(mitad));
+    }
   };
 
   const columns = [
@@ -240,6 +268,13 @@ const GastosPage: React.FC = () => {
       header: 'Fecha',
       render: (value: any) => (
         <div className="text-gray-600">{formatDate(value)}</div>
+      )
+    },
+    {
+      key: 'metodo_pago' as keyof Gasto,
+      header: 'Método de Pago',
+      render: (value: any) => (
+        <div className="text-gray-600">{value}</div>
       )
     },
     {
@@ -341,20 +376,9 @@ const GastosPage: React.FC = () => {
 
       {renderEstadisticas()}
 
-      <Card>
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Lista de Gastos</h3>
-            <div className="flex items-center space-x-4">
-              <Input
-                type="search"
-                placeholder="Buscar gastos..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                icon={Search}
-                className="w-64"
-              />
-            </div>
           </div>
 
           {isLoading ? (
@@ -384,7 +408,6 @@ const GastosPage: React.FC = () => {
             </>
           )}
         </div>
-      </Card>
 
       {/* Modal para crear/editar gasto */}
       <Modal
@@ -436,6 +459,80 @@ const GastosPage: React.FC = () => {
               <p className="text-red-500 text-sm mt-1">{errors.fecha}</p>
             )}
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-3 text-gray-600">Método de Pago</label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => handleMetodoPagoChange('efectivo')}
+                className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'efectivo'
+                  ? 'border-green-500 bg-green-50 text-green-700'
+                  : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-green-300 hover:bg-green-25'
+                  }`}
+              >
+                <div className="text-center mx-auto self-center flex flex-col">
+                  <div className="text-lg font-semibold">💵</div>
+                  <div className="text-sm">Efectivo</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMetodoPagoChange('transferencia')}
+                className={`p-3 rounded-lg border-2 transition-all ${metodoPago === 'transferencia'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-blue-300 hover:bg-blue-25'
+                  }`}
+              >
+                <div className="text-center mx-auto self-center flex flex-col">
+                  <div className="text-lg font-semibold">🏦</div>
+                  <div className="text-sm">Transferencia</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMetodoPagoChange('mixto')}
+                className={`p-3 rounded-lg border-2 transition-all ${formData.metodo_pago === 'mixto'
+                  ? 'border-purple-500 bg-purple-50 text-purple-700'
+                  : 'border-gray-300 bg-gray-50 text-gray-600 hover:border-purple-300 hover:bg-purple-25'
+                  }`}
+              >
+                <div className="text-center">
+                  <div className="text-lg font-semibold">💳</div>
+                  <div className="text-sm">Mixto</div>
+                </div>
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-600">Monto en Efectivo</label>
+              <Input
+                type="text"
+                value={montoEfectivo}
+                onChange={e => {
+                  const rawValue = unformatNumber(e.target.value);
+                  const numValue = parseFloat(rawValue) || 0;
+                  setMontoEfectivo(formatNumberForInput(numValue));
+                }}
+                placeholder="0"
+                disabled={formData.metodo_pago === 'transferencia'}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-600">Monto en Transferencia</label>
+              <Input
+                type="text"
+                value={montoTransferencia}
+                onChange={e => {
+                  const rawValue = unformatNumber(e.target.value);
+                  const numValue = parseFloat(rawValue) || 0;
+                  setMontoTransferencia(formatNumberForInput(numValue));
+                }}
+                placeholder="0"
+                disabled={formData.metodo_pago === 'efectivo'}
+              />
+            </div>
+          </div>
 
           <div className="flex justify-end space-x-3 pt-4">
             <Button
@@ -453,10 +550,10 @@ const GastosPage: React.FC = () => {
       </Modal>
 
       {/* Modal de confirmación de eliminación */}
-      <Modal 
-        isOpen={deleteModalOpen} 
-        onClose={handleCancelDelete} 
-        title="Confirmar Eliminación" 
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={handleCancelDelete}
+        title="Confirmar Eliminación"
         size="md"
       >
         <div className="space-y-4">

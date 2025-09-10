@@ -53,7 +53,7 @@ const Modal: React.FC<ModalProps> = ({
         />
 
         {/* Modal */}
-        <div className="inline-block w-full text-left align-bottom transition-all transform bg-white rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:w-full">
+        <div className="inline-block w-full text-left align-bottom transition-all transform rounded-xl shadow-2xl sm:my-8 sm:align-middle sm:w-full">
           <div className={`relative mx-auto ${sizeClasses[size]} bg-white rounded-xl shadow-lg border border-gray-200`}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white rounded-t-xl">
