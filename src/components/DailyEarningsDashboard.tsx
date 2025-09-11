@@ -1,18 +1,18 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp, 
-  Users, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Users,
   Activity,
   BarChart3,
   CreditCard,
   PlusCircle,
   Package
 } from 'lucide-react';
-import { Spinner, Badge, Button } from './ui';
+import { Spinner, Badge, Button, Modal } from './ui';
 import { useDailyEarnings } from '../hooks/useDailyEarnings';
 import { formatDateForAPI } from '../lib/dateConfig';
 
@@ -22,27 +22,29 @@ interface DailyEarningsDashboardProps {
 
 const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ className = '' }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any | null>(null);
+  
   // Usar el hook personalizado
   const fechaString = formatDateForAPI(selectedDate);
   const { data: dailyData, isLoading } = useDailyEarnings(fechaString);
 
   // Función para formatear moneda
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { 
-      style: 'currency', 
-      currency: 'COP', 
-      minimumFractionDigits: 0 
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
     }).format(amount);
   };
 
   // Función para formatear fecha
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-CO', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('es-CO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
@@ -62,6 +64,16 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
   const goToToday = useCallback(() => {
     setSelectedDate(new Date());
   }, []);
+
+  const abrirModalEmpleado = (empleado: any) => {
+    setEmpleadoSeleccionado(empleado);
+    setIsModalOpen(true);
+  };
+
+  const cerrarModalEmpleado = () => {
+    setEmpleadoSeleccionado(null);
+    setIsModalOpen(false);
+  };
 
   const stats = useMemo(() => [
     {
@@ -115,7 +127,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
             {formatDate(selectedDate)}
           </Badge>
         </div>
-        
+
         <div className="flex items-center justify-center sm:justify-end space-x-2">
           <Button
             size="sm"
@@ -125,7 +137,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          
+
           <Button
             size="sm"
             variant="outline"
@@ -134,7 +146,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
           >
             Hoy
           </Button>
-          
+
           <Button
             size="sm"
             variant="outline"
@@ -162,7 +174,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                     <p className="text-xs font-medium text-gray-600 mb-1 truncate">{stat.title}</p>
                     <div className={`text-base md:text-lg font-bold ${stat.textColor} mb-1 break-words`}>
                       {stat.title === 'Servicios Realizados'
-                        ? stat.value 
+                        ? stat.value
                         : formatCurrency(stat.value)
                       }
                     </div>
@@ -293,7 +305,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Detalles de servicios - Solo los primeros 2 */}
                     <div className="space-y-1">
                       {empleado.servicios.slice(0, 2).map((servicio: any, idx: number) => (
@@ -309,9 +321,12 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                         </div>
                       ))}
                       {empleado.servicios.length > 2 && (
-                        <div className="text-xs text-blue-600 text-center">
+                        <button
+                          onClick={() => abrirModalEmpleado(empleado)}
+                          className="text-xs text-blue-600 text-center hover:underline"
+                        >
                           +{empleado.servicios.length - 2} servicios más
-                        </div>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -319,6 +334,31 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
               </div>
             </div>
           )}
+
+          <Modal
+            isOpen={isModalOpen}
+            onClose={cerrarModalEmpleado}
+            title={empleadoSeleccionado ? `Servicios de ${empleadoSeleccionado.nombre} ${empleadoSeleccionado.apellido}` : ''}
+            size="lg"
+          >
+            {empleadoSeleccionado && (
+              <div className="space-y-2">
+                {empleadoSeleccionado.servicios.map((servicio: any, idx: number) => (
+                  <div key={idx} className="p-2 border rounded-lg bg-gray-50">
+                    <div className="flex justify-between text-sm font-medium text-gray-800">
+                      <span>{servicio.servicio_nombre} (x{servicio.cantidad})</span>
+                      <span>{formatCurrency(servicio.total_servicio)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Bruto: {formatCurrency(servicio.total_bruto_servicio || 0)}</span>
+                      <span>{servicio.porcentaje_empleado}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Modal>
+
 
           {/* Barra de progreso de ganancia - Compacta */}
           <div className="bg-gray-50 rounded-lg p-3 md:p-4">
@@ -329,10 +369,10 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
+              <div
                 className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500"
-                style={{ 
-                  width: `${Math.min(dailyData.resumen_diario?.porcentaje_ganancia || 0, 100)}%` 
+                style={{
+                  width: `${Math.min(dailyData.resumen_diario?.porcentaje_ganancia || 0, 100)}%`
                 }}
               ></div>
             </div>
