@@ -24,7 +24,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any | null>(null);
-  
+
   // Usar el hook personalizado
   const fechaString = formatDateForAPI(selectedDate);
   const { data: dailyData, isLoading } = useDailyEarnings(fechaString);
@@ -321,12 +321,14 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
                         </div>
                       ))}
                       {empleado.servicios.length > 2 && (
-                        <button
-                          onClick={() => abrirModalEmpleado(empleado)}
-                          className="text-xs text-blue-600 text-center hover:underline"
-                        >
-                          +{empleado.servicios.length - 2} servicios más
-                        </button>
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => abrirModalEmpleado(empleado)}
+                            className="text-xs text-blue-600 text-center hover:underline"
+                          >
+                            +{empleado.servicios.length - 2} servicios más
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
