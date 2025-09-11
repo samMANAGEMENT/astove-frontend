@@ -16,7 +16,6 @@ import { Spinner, Badge, Button, Modal } from './ui';
 import { useDailyEarnings } from '../hooks/useDailyEarnings';
 import { formatDateForAPI } from '../lib/dateConfig';
 
-
 interface DailyEarningsDashboardProps {
   className?: string;
 }
@@ -25,6 +24,7 @@ const DailyEarningsDashboard: React.FC<DailyEarningsDashboardProps> = ({ classNa
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any | null>(null);
+  
   // Usar el hook personalizado
   const fechaString = formatDateForAPI(selectedDate);
   const { data: dailyData, isLoading } = useDailyEarnings(fechaString);
