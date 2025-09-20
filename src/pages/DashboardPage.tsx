@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, 
-  TrendingUp, 
+import {
+  Users,
+  TrendingUp,
   TrendingDown,
-  DollarSign, 
+  DollarSign,
   Activity,
   ArrowUpRight,
   ArrowDownRight,
@@ -14,6 +14,7 @@ import {
   PlusCircle,
   Package,
   ShoppingCart,
+  BanknoteArrowUp,
 } from 'lucide-react';
 import { Spinner, Badge, Button } from '../components/ui';
 import { useApi } from '../hooks/useApi';
@@ -47,6 +48,10 @@ const DashboardPage: React.FC = () => {
   const [isLoadingProductos, setIsLoadingProductos] = React.useState(true);
   const [estadisticasVentas, setEstadisticasVentas] = React.useState<any>(null);
   const [isLoadingVentas, setIsLoadingVentas] = React.useState(true);
+
+  //Estados para caja menor
+  const [cajaMenorTotal, setCajaMenorTotal] = React.useState<number>(0);
+  const [isLoadingCajaMenor, setIsLoadingCajaMenor] = React.useState(true);
 
   // Hook para ganancias por método de pago
   const gananciasMetodoApi = useApi();
@@ -159,6 +164,23 @@ const DashboardPage: React.FC = () => {
     loadEstadisticasVentas();
   }, []);
 
+  // Cargar total de caja menor
+  useEffect(() => {
+    const loadCajaMenorTotal = async () => {
+      try {
+        setIsLoadingCajaMenor(true);
+        const total = await ingresosAdicionalesService.getCajaMenorTotal();
+        setCajaMenorTotal(Number(total));
+      } catch (error) {
+        console.error('Error al cargar total de caja menor:', error);
+      } finally {
+        setIsLoadingCajaMenor(false);
+      }
+    };
+
+    loadCajaMenorTotal();
+  }, []);
+
   const handlePagarEmpleado = (empleado: EstadoPagoEmpleado) => {
     setEmpleadoSeleccionado(empleado);
     setIsModalOpen(true);
@@ -231,8 +253,8 @@ const DashboardPage: React.FC = () => {
         ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.efectivo.total_ingresos)
         : '--',
       isLoading: isLoadingGananciasMetodo,
-      change: gananciasMetodoData?.efectivo?.porcentaje_del_total 
-        ? `${gananciasMetodoData.efectivo.porcentaje_del_total.toFixed(1)}%` 
+      change: gananciasMetodoData?.efectivo?.porcentaje_del_total
+        ? `${gananciasMetodoData.efectivo.porcentaje_del_total.toFixed(1)}%`
         : '--',
       changeType: 'neutral',
       icon: <DollarSign className="w-6 h-6" />,
@@ -244,8 +266,8 @@ const DashboardPage: React.FC = () => {
         ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(gananciasMetodoData.transferencia.total_ingresos)
         : '--',
       isLoading: isLoadingGananciasMetodo,
-      change: gananciasMetodoData?.transferencia?.porcentaje_del_total 
-        ? `${gananciasMetodoData.transferencia.porcentaje_del_total.toFixed(1)}%` 
+      change: gananciasMetodoData?.transferencia?.porcentaje_del_total
+        ? `${gananciasMetodoData.transferencia.porcentaje_del_total.toFixed(1)}%`
         : '--',
       changeType: 'neutral',
       icon: <CreditCard className="w-6 h-6" />,
@@ -262,6 +284,17 @@ const DashboardPage: React.FC = () => {
         ? determinarTipoCambio(totalGastosMes, gananciaNeta.gastos_mes_anterior)
         : 'neutral',
       icon: <TrendingDown className="w-6 h-6" />,
+      color: 'bg-red-500'
+    },
+    {
+      title: 'Caja Menor',
+      value: new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(cajaMenorTotal || 0),
+      isLoading: isLoadingCajaMenor,
+      change: '--',
+      changeType: totalGastosMes && gananciaNeta?.gastos_mes_anterior
+        ? determinarTipoCambio(totalGastosMes, gananciaNeta.gastos_mes_anterior)
+        : 'neutral',
+      icon: <BanknoteArrowUp className="w-6 h-6" />,
       color: 'bg-red-500'
     }
   ];
@@ -294,10 +327,9 @@ const DashboardPage: React.FC = () => {
                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                     </div>
                   )}
-                  <span className={`text-sm font-medium ml-1 ${
-                    stat.changeType === 'increase' ? 'text-green-600' : 
+                  <span className={`text-sm font-medium ml-1 ${stat.changeType === 'increase' ? 'text-green-600' :
                     stat.changeType === 'decrease' ? 'text-red-600' : 'text-gray-600'
-                  }`}>
+                    }`}>
                     {stat.change}
                   </span>
                   {stat.changeType !== 'neutral' && stat.change !== '--' && (
@@ -342,12 +374,11 @@ const DashboardPage: React.FC = () => {
                         <div>
                           <div className="font-medium text-gray-900">{empleado.nombre} {empleado.apellido}</div>
                           <div className="text-xs text-gray-500">{empleado.cantidad_servicios} servicios</div>
-                          <div className={`text-xs font-medium ${
-                            empleado.estado_pago === 'pagado' ? 'text-green-600' :
+                          <div className={`text-xs font-medium ${empleado.estado_pago === 'pagado' ? 'text-green-600' :
                             empleado.estado_pago === 'parcial' ? 'text-orange-600' : 'text-red-600'
-                          }`}>
+                            }`}>
                             {empleado.estado_pago === 'pagado' ? '✅ Pagado' :
-                             empleado.estado_pago === 'parcial' ? '⚠️ Pago Parcial' : '⏳ Pendiente'}
+                              empleado.estado_pago === 'parcial' ? '⚠️ Pago Parcial' : '⏳ Pendiente'}
                           </div>
                         </div>
                       </div>
@@ -379,7 +410,7 @@ const DashboardPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Detalles de servicios */}
                     <div className="mt-3 space-y-2">
                       {(empleado.detalles_servicios || []).slice(0, 2).map((servicio: any, index: number) => (
@@ -414,7 +445,7 @@ const DashboardPage: React.FC = () => {
               </span>
             </div>
           </div>
-          
+
           {isLoadingGanancia ? (
             <div className="flex justify-center items-center py-8">
               <Spinner size="md" />
@@ -541,7 +572,7 @@ const DashboardPage: React.FC = () => {
                   <span>{gananciaNeta?.porcentaje_ganancia?.toFixed(1) || '0.0'}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${gananciaNeta?.porcentaje_ganancia || 0}%` }}
                   ></div>
@@ -563,7 +594,7 @@ const DashboardPage: React.FC = () => {
               </Badge>
             </div>
           </div>
-          
+
           {isLoadingEstadisticas ? (
             <div className="flex justify-center items-center py-8">
               <Spinner size="md" />
@@ -634,18 +665,18 @@ const DashboardPage: React.FC = () => {
                 <div className="flex justify-between text-sm text-gray-600 mb-1">
                   <span>% del total de ingresos</span>
                   <span>
-                    {estadisticasCompletas?.resumen_general?.ingresos_totales > 0 
+                    {estadisticasCompletas?.resumen_general?.ingresos_totales > 0
                       ? ((estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100).toFixed(1)
                       : 0}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${estadisticasCompletas?.resumen_general?.ingresos_totales > 0 
-                        ? (estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100 
-                        : 0}%` 
+                    style={{
+                      width: `${estadisticasCompletas?.resumen_general?.ingresos_totales > 0
+                        ? (estadisticasCompletas.resumen_general.ingresos_adicionales / estadisticasCompletas.resumen_general.ingresos_totales) * 100
+                        : 0}%`
                     }}
                   ></div>
                 </div>
@@ -666,7 +697,7 @@ const DashboardPage: React.FC = () => {
               </Badge>
             </div>
           </div>
-          
+
           {isLoadingProductos || isLoadingVentas ? (
             <div className="flex justify-center items-center py-8">
               <Spinner size="md" />
@@ -679,7 +710,7 @@ const DashboardPage: React.FC = () => {
                   <Package className="w-4 h-4 mr-2" />
                   Inventario de Productos
                 </h4>
-                
+
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="bg-blue-500 p-2 rounded-lg">
@@ -726,7 +757,7 @@ const DashboardPage: React.FC = () => {
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Ventas de Productos
                   </h4>
-                  
+
                   <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="bg-green-500 p-2 rounded-lg">
@@ -762,7 +793,7 @@ const DashboardPage: React.FC = () => {
                     <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <span className="text-sm text-gray-600">Promedio/Venta:</span>
                       <span className="font-semibold text-gray-900">
-                        {estadisticasVentas?.total_ventas > 0 
+                        {estadisticasVentas?.total_ventas > 0
                           ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(estadisticasVentas.total_ganancia / estadisticasVentas.total_ventas)
                           : '$0'}
                       </span>
@@ -797,12 +828,12 @@ const DashboardPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${(estadisticasProductos?.ganancia_total_potencial || 0) + (estadisticasVentas?.total_ganancia || 0) > 0 
+                    style={{
+                      width: `${(estadisticasProductos?.ganancia_total_potencial || 0) + (estadisticasVentas?.total_ganancia || 0) > 0
                         ? Math.min(100, (((estadisticasProductos?.ganancia_total_potencial || 0) + (estadisticasVentas?.total_ganancia || 0)) / 1000000) * 100)
-                        : 0}%` 
+                        : 0}%`
                     }}
                   ></div>
                 </div>
