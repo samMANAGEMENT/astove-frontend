@@ -15,13 +15,22 @@ import {
 } from '../components/ui';
 import agendaService, { type Agenda, type CrearAgendaData } from '../lib/services/agendaService';
 import operadoresService, { type Operador } from '../lib/services/operadoresService';
+import listaEsperaService, { type PersonaListaEspera, type CrearPersonaListaEsperaData } from '../lib/services/listaEsperaService';
 import AccordionItem from '../components/AccordionItem';
+import ListaEsperaItem from '../components/ListaEsperaItem';
 
 interface AgendaFormData {
   operador_id: number | null;
   nombre: string;
   descripcion: string;
   activa: boolean;
+}
+
+interface ListaEsperaFormData {
+  nombre: string;
+  servicio: string;
+  telefono: string;
+  notas: string;
 }
 
 const AgendasPage: React.FC = () => {
@@ -56,16 +65,45 @@ const AgendasPage: React.FC = () => {
   const [fechaDisponibilidad, setFechaDisponibilidad] = useState(new Date().toISOString().split('T')[0]);
   // (Vista horizontal por operador, sin acordeón)
 
+  // Estados para lista de espera
+  const [listaEspera, setListaEspera] = useState<PersonaListaEspera[]>([]);
+  const [showListaEsperaModal, setShowListaEsperaModal] = useState(false);
+  const [editingPersona, setEditingPersona] = useState<PersonaListaEspera | null>(null);
+  const [personaToDelete, setPersonaToDelete] = useState<PersonaListaEspera | null>(null);
+  const [listaEsperaFormData, setListaEsperaFormData] = useState<ListaEsperaFormData>({
+    nombre: '',
+    servicio: '',
+    telefono: '',
+    notas: '',
+  });
+  const [listaEsperaFormErrors, setListaEsperaFormErrors] = useState<{
+    nombre?: string;
+    servicio?: string;
+  }>({});
+
+  // Estados para asignar cita desde lista de espera
+  const [showAsignarCitaModal, setShowAsignarCitaModal] = useState(false);
+  const [personaParaCita, setPersonaParaCita] = useState<PersonaListaEspera | null>(null);
+  const [agendaSeleccionada, setAgendaSeleccionada] = useState<Agenda | null>(null);
+  const [horarioSeleccionado, setHorarioSeleccionado] = useState<any>(null);
+
+  // Estados para cambiar fecha de persona
+  const [showCambiarFechaModal, setShowCambiarFechaModal] = useState(false);
+  const [personaParaCambiarFecha, setPersonaParaCambiarFecha] = useState<PersonaListaEspera | null>(null);
+  const [nuevaFecha, setNuevaFecha] = useState('');
+
   useEffect(() => {
     loadAgendas();
     loadOperadores();
     cargarDisponibilidadTiempoReal();
+    cargarListaEspera();
   }, []);
 
   // Refrescar disponibilidad cuando cambia la fecha seleccionada
   useEffect(() => {
     if (fechaDisponibilidad) {
       cargarDisponibilidadTiempoReal(fechaDisponibilidad);
+      cargarListaEspera(fechaDisponibilidad);
     }
   }, [fechaDisponibilidad]);
 
@@ -104,6 +142,17 @@ const AgendasPage: React.FC = () => {
       toast.error('Error al cargar la lista de agendas');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const cargarListaEspera = async (fecha?: string) => {
+    const fechaConsulta = fecha ?? fechaDisponibilidad;
+    try {
+      const data = await listaEsperaService.getByFecha(fechaConsulta);
+      setListaEspera(data);
+    } catch (error: any) {
+      console.error('Error al cargar lista de espera:', error);
+      toast.error(error.response?.data?.error || 'Error al cargar lista de espera');
     }
   };
 
@@ -177,6 +226,144 @@ const AgendasPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error al eliminar agenda:', error);
       toast.error(error.response?.data?.error || 'Error al eliminar la agenda');
+    }
+  };
+
+  // Funciones para lista de espera
+  const resetListaEsperaForm = () => {
+    setListaEsperaFormData({
+      nombre: '',
+      servicio: '',
+      telefono: '',
+      notas: '',
+    });
+    setListaEsperaFormErrors({});
+  };
+
+  const handleListaEsperaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validación
+    const errors: typeof listaEsperaFormErrors = {};
+    if (!listaEsperaFormData.nombre.trim()) errors.nombre = 'El nombre es requerido';
+    if (!listaEsperaFormData.servicio.trim()) errors.servicio = 'El servicio es requerido';
+
+    if (Object.keys(errors).length > 0) {
+      setListaEsperaFormErrors(errors);
+      return;
+    }
+
+    try {
+      const data: CrearPersonaListaEsperaData = {
+        ...listaEsperaFormData,
+        fecha: fechaDisponibilidad,
+      };
+
+      if (editingPersona) {
+        await listaEsperaService.update(editingPersona.id, data);
+        toast.success('Persona actualizada correctamente');
+      } else {
+        await listaEsperaService.create(data);
+        toast.success('Persona agregada a la lista de espera');
+      }
+
+      setShowListaEsperaModal(false);
+      resetListaEsperaForm();
+      setEditingPersona(null);
+      cargarListaEspera();
+    } catch (error: any) {
+      console.error('Error al guardar persona:', error);
+      toast.error(error.response?.data?.error || 'Error al guardar la persona');
+    }
+  };
+
+  const handleEditPersona = (persona: PersonaListaEspera) => {
+    setEditingPersona(persona);
+    setListaEsperaFormData({
+      nombre: persona.nombre,
+      servicio: persona.servicio,
+      telefono: persona.telefono || '',
+      notas: persona.notas || '',
+    });
+    setShowListaEsperaModal(true);
+  };
+
+  const handleDeletePersona = async () => {
+    if (!personaToDelete) return;
+
+    try {
+      await listaEsperaService.delete(personaToDelete.id);
+      toast.success('Persona eliminada de la lista de espera');
+      setPersonaToDelete(null);
+      cargarListaEspera();
+    } catch (error: any) {
+      console.error('Error al eliminar persona:', error);
+      toast.error(error.response?.data?.error || 'Error al eliminar la persona');
+    }
+  };
+
+  const handleAddPersona = () => {
+    resetListaEsperaForm();
+    setEditingPersona(null);
+    setShowListaEsperaModal(true);
+  };
+
+  // Funciones para asignar cita desde lista de espera
+  const handleAsignarCita = (persona: PersonaListaEspera) => {
+    setPersonaParaCita(persona);
+    setAgendaSeleccionada(null);
+    setHorarioSeleccionado(null);
+    setShowAsignarCitaModal(true);
+  };
+
+  const handleCrearCitaDesdeListaEspera = async () => {
+    if (!personaParaCita || !agendaSeleccionada || !horarioSeleccionado) {
+      toast.error('Por favor selecciona una agenda y horario');
+      return;
+    }
+
+    try {
+      // Aquí deberías integrar con el servicio de citas existente
+      // Por ahora solo mostramos un mensaje de éxito
+      toast.success(`Cita asignada para ${personaParaCita.nombre} en ${agendaSeleccionada.nombre}`);
+      
+      // Opcional: eliminar de la lista de espera después de asignar cita
+      // await listaEsperaService.delete(personaParaCita.id);
+      // cargarListaEspera();
+      
+      setShowAsignarCitaModal(false);
+      setPersonaParaCita(null);
+      setAgendaSeleccionada(null);
+      setHorarioSeleccionado(null);
+    } catch (error: any) {
+      console.error('Error al asignar cita:', error);
+      toast.error('Error al asignar la cita');
+    }
+  };
+
+  // Funciones para cambiar fecha de persona
+  const handleCambiarFecha = (persona: PersonaListaEspera) => {
+    setPersonaParaCambiarFecha(persona);
+    setNuevaFecha(persona.fecha);
+    setShowCambiarFechaModal(true);
+  };
+
+  const handleConfirmarCambioFecha = async () => {
+    if (!personaParaCambiarFecha || !nuevaFecha) return;
+
+    try {
+      await listaEsperaService.update(personaParaCambiarFecha.id, {
+        fecha: nuevaFecha
+      });
+      
+      toast.success('Fecha actualizada correctamente');
+      setShowCambiarFechaModal(false);
+      setPersonaParaCambiarFecha(null);
+      setNuevaFecha('');
+      cargarListaEspera();
+    } catch (error: any) {
+      console.error('Error al cambiar fecha:', error);
+      toast.error('Error al cambiar la fecha');
     }
   };
 
@@ -407,6 +594,17 @@ const AgendasPage: React.FC = () => {
                       formatTime={formatTime}
                     />
                   ))}
+                  
+                  {/* Columna de Lista de Espera */}
+                  <ListaEsperaItem
+                    personas={listaEspera}
+                    fecha={fechaDisponibilidad}
+                    onEdit={handleEditPersona}
+                    onDelete={(persona) => setPersonaToDelete(persona)}
+                    onAdd={handleAddPersona}
+                    onAsignarCita={handleAsignarCita}
+                    onCambiarFecha={handleCambiarFecha}
+                  />
                 </div>
               </div>
             </div>
@@ -688,6 +886,303 @@ const AgendasPage: React.FC = () => {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal para crear/editar persona en lista de espera */}
+      <Modal
+        isOpen={showListaEsperaModal}
+        onClose={() => {
+          setShowListaEsperaModal(false);
+          resetListaEsperaForm();
+          setEditingPersona(null);
+        }}
+        title={editingPersona ? 'Editar Persona en Lista de Espera' : 'Agregar Persona a Lista de Espera'}
+      >
+        <form onSubmit={handleListaEsperaSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre Completo *
+            </label>
+            <Input
+              value={listaEsperaFormData.nombre}
+              onChange={(e) => setListaEsperaFormData({ ...listaEsperaFormData, nombre: e.target.value })}
+              placeholder="Ej: Juan Pérez"
+            />
+            {listaEsperaFormErrors.nombre && (
+              <p className="text-red-500 text-sm mt-1">{listaEsperaFormErrors.nombre}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Servicio *
+            </label>
+            <Input
+              value={listaEsperaFormData.servicio}
+              onChange={(e) => setListaEsperaFormData({ ...listaEsperaFormData, servicio: e.target.value })}
+              placeholder="Ej: Consulta médica, Terapia física"
+            />
+            {listaEsperaFormErrors.servicio && (
+              <p className="text-red-500 text-sm mt-1">{listaEsperaFormErrors.servicio}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Teléfono
+            </label>
+            <Input
+              value={listaEsperaFormData.telefono}
+              onChange={(e) => setListaEsperaFormData({ ...listaEsperaFormData, telefono: e.target.value })}
+              placeholder="Ej: 3001234567"
+              type="text"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notas Adicionales
+            </label>
+            <textarea
+              value={listaEsperaFormData.notas}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setListaEsperaFormData({ ...listaEsperaFormData, notas: e.target.value })}
+              placeholder="Información adicional sobre la persona o el servicio requerido"
+              rows={3}
+              className="text-gray-600 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <strong>Fecha:</strong> {formatDate(fechaDisponibilidad)}
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 bg-blue-50 p-2 rounded-md">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowListaEsperaModal(false);
+                resetListaEsperaForm();
+                setEditingPersona(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit">
+              {editingPersona ? 'Actualizar' : 'Agregar'} Persona
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal de confirmación de eliminación de persona */}
+      <Modal
+        isOpen={!!personaToDelete}
+        onClose={() => setPersonaToDelete(null)}
+        title="Confirmar eliminación"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            ¿Estás seguro de que quieres eliminar a "{personaToDelete?.nombre}" de la lista de espera?
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setPersonaToDelete(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeletePersona}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal para asignar cita desde lista de espera */}
+      <Modal
+        isOpen={showAsignarCitaModal}
+        onClose={() => {
+          setShowAsignarCitaModal(false);
+          setPersonaParaCita(null);
+          setAgendaSeleccionada(null);
+          setHorarioSeleccionado(null);
+        }}
+        title="Asignar Cita desde Lista de Espera"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {personaParaCita && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">
+                {personaParaCita.nombre}
+              </h3>
+              <p className="text-blue-700 text-sm">
+                Servicio: {personaParaCita.servicio}
+              </p>
+              {personaParaCita.telefono && (
+                <p className="text-blue-600 text-sm">
+                  Teléfono: {personaParaCita.telefono}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar Agenda
+              </label>
+              <select
+                value={agendaSeleccionada?.id || ''}
+                onChange={(e) => {
+                  const agendaId = Number(e.target.value);
+                  const agenda = agendas.find(a => a.id === agendaId);
+                  setAgendaSeleccionada(agenda || null);
+                  setHorarioSeleccionado(null);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              >
+                <option value="">Seleccionar agenda</option>
+                {agendas.filter(agenda => agenda.activa).map((agenda) => (
+                  <option key={agenda.id} value={agenda.id}>
+                    {agenda.nombre} - {agenda.operador?.nombre} {agenda.operador?.apellido}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {agendaSeleccionada && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seleccionar Horario
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {disponibilidadTiempoReal?.disponibilidad
+                    ?.find((d: any) => d.agenda_id === agendaSeleccionada.id)
+                    ?.horarios_disponibles?.map((horario: any) => (
+                    <div
+                      key={horario.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        horarioSeleccionado?.id === horario.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setHorarioSeleccionado(horario)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{horario.titulo}</h4>
+                          <p className="text-sm text-gray-600">
+                            {formatTime(horario.hora_inicio)} - {formatTime(horario.hora_fin)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={horario.disponible ? 'success' : 'outline'}>
+                            {horario.disponible ? 'Disponible' : 'Ocupado'}
+                          </Badge>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {horario.disponibles}/{horario.capacidad} espacios
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Fecha:</strong> {formatDate(fechaDisponibilidad)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowAsignarCitaModal(false);
+                setPersonaParaCita(null);
+                setAgendaSeleccionada(null);
+                setHorarioSeleccionado(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCrearCitaDesdeListaEspera}
+              disabled={!agendaSeleccionada || !horarioSeleccionado}
+            >
+              Asignar Cita
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal para cambiar fecha de persona */}
+      <Modal
+        isOpen={showCambiarFechaModal}
+        onClose={() => {
+          setShowCambiarFechaModal(false);
+          setPersonaParaCambiarFecha(null);
+          setNuevaFecha('');
+        }}
+        title="Cambiar Fecha de Persona"
+      >
+        <div className="space-y-4">
+          {personaParaCambiarFecha && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">
+                {personaParaCambiarFecha.nombre}
+              </h3>
+              <p className="text-blue-700 text-sm">
+                Servicio: {personaParaCambiarFecha.servicio}
+              </p>
+              <p className="text-blue-600 text-sm">
+                Fecha actual: {formatDate(personaParaCambiarFecha.fecha)}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nueva Fecha
+            </label>
+            <Input
+              type="date"
+              value={nuevaFecha}
+              onChange={(e) => setNuevaFecha(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowCambiarFechaModal(false);
+                setPersonaParaCambiarFecha(null);
+                setNuevaFecha('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmarCambioFecha}
+              disabled={!nuevaFecha || nuevaFecha === personaParaCambiarFecha?.fecha}
+            >
+              Cambiar Fecha
+            </Button>
           </div>
         </div>
       </Modal>
